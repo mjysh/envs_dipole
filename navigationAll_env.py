@@ -266,8 +266,8 @@ class DipoleSingleEnv(gym.Env):
         relv = -uVK*np.sin(ort) + vVK*np.cos(ort)
         return np.array([relx,rely,relu,relv,ort])
     def _get_obs_ego2lr(self):                 # get the orientation (reltative to the targeted direction) and the shape
-        posLeft = self.pos[0:2]+np.array([-self.bw/2*np.sin(self.pos[-1]),self.bw/2*np.cos(self.pos[-1])])
-        posRight = self.pos[0:2]+np.array([self.bw/2*np.sin(self.pos[-1]),-self.bw/2*np.cos(self.pos[-1])])
+        posLeft = self.pos[0:2] + np.array([-self.bw/2*np.sin(self.pos[-1]),self.bw/2*np.cos(self.pos[-1])])
+        posRight = 2*self.pos[0:2] - posLeft
         uVKL,vVKL,_ = self.flow(posLeft,self.time)
         uVKR,vVKR,_ = self.flow(posRight,self.time)
         ort = self.pos[-1]
@@ -282,8 +282,8 @@ class DipoleSingleEnv(gym.Env):
         relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
         return np.array([relx,rely,reluL,relvL,reluR,relvR])
     def _get_obs_ego2fb(self):                 # get the orientation (reltative to the targeted direction) and the shape
-        posFront = self.pos[0:2]+np.array([self.bw/2*np.cos(self.pos[-1]),self.bw/2*np.sin(self.pos[-1])])
-        posBack = self.pos[0:2]+np.array([-self.bw/2*np.cos(self.pos[-1]),-self.bw/2*np.sin(self.pos[-1])])
+        posFront = self.pos[0:2] + np.array([self.bw/2*np.cos(self.pos[-1]),self.bw/2*np.sin(self.pos[-1])])
+        posBack = 2*self.pos[0:2] - posFront
         uVKF,vVKF,_ = self.flow(posFront,self.time)
         uVKB,vVKB,_ = self.flow(posBack,self.time)
         ort = self.pos[-1]

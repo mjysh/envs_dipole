@@ -3,8 +3,8 @@ bl = 1               # length
 bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
-flowMode = 'CFD'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
-obsMode = 'labframeOneSensor'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorFB'
+flowMode = 'reduced'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
+obsMode = 'egoOneSensor'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorFB'
 ##===============================================================================================##
 dt = 0.1
 mu = 0.8                                  # swimming speed
