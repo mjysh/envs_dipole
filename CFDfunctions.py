@@ -44,9 +44,9 @@ def adapt_interp_test(time = 0.634,posX = -0.883,posY = 0.43,
                                YMIN[frameUp],YMAX[frameUp],
                                dx_list[frameUp],l[frameUp])
         # UUp, VUp = read_vel(posX, posY, frameUp)
-        U_interp = UUp*weightUp+UDown*weightDown
-        V_interp = VUp*weightUp+VDown*weightDown
-        O_interp = OUp*weightUp+ODown*weightDown
+        U_interp = UUp*weightUp + UDown*weightDown
+        V_interp = VUp*weightUp + VDown*weightDown
+        O_interp = OUp*weightUp + ODown*weightDown
     else:
         U_interp = UDown+0
         V_interp = VDown+0
@@ -74,9 +74,9 @@ def adapt_time_interp(UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX,frame_rate,time = 0.634,po
                                XMIN[frameUp],XMAX[frameUp],
                                YMIN[frameUp],YMAX[frameUp])
         # UUp, VUp = read_vel(posX, posY, frameUp)
-        U_interp = UUp*weightUp+UDown*weightDown
-        V_interp = VUp*weightUp+VDown*weightDown
-        O_interp = OUp*weightUp+ODown*weightDown
+        U_interp = UUp*weightUp + UDown*weightDown
+        V_interp = VUp*weightUp + VDown*weightDown
+        O_interp = OUp*weightUp + ODown*weightDown
     else:
         U_interp = UDown+0
         V_interp = VDown+0
@@ -88,18 +88,18 @@ def adapt_load_data(time_span,source_path,level_limit):
         time_span = min(data["time_span"],time_span)
         frame_rate = data["frame_rate"]
     tn = int(time_span*frame_rate)+1
-    UUU = [[] for i in range(tn)]
-    VVV = [[] for i in range(tn)]
-    OOO = [[] for i in range(tn)]
-    # IMIN = [[] for i in range(tn)]
-    # IMAX = [[] for i in range(tn)]
-    # JMIN = [[] for i in range(tn)]
-    # JMAX = [[] for i in range(tn)]
-    XMIN = [[] for i in range(tn)]
-    XMAX = [[] for i in range(tn)]
-    YMIN = [[] for i in range(tn)]
-    YMAX = [[] for i in range(tn)]
-    # l = [[] for i in range(tn)]
+    UUU = [[] for _ in range(tn)]
+    VVV = [[] for _ in range(tn)]
+    OOO = [[] for _ in range(tn)]
+    # IMIN = [[] for _ in range(tn)]
+    # IMAX = [[] for _ in range(tn)]
+    # JMIN = [[] for _ in range(tn)]
+    # JMAX = [[] for _ in range(tn)]
+    XMIN = [[] for _ in range(tn)]
+    XMAX = [[] for _ in range(tn)]
+    YMIN = [[] for _ in range(tn)]
+    YMAX = [[] for _ in range(tn)]
+    # l = [[] for _ in range(tn)]
     tlist = []
     max_level_list = []
     num_patches_list = []
@@ -131,7 +131,7 @@ def adapt_load_data(time_span,source_path,level_limit):
         # ,l
 def adapt_space_Interp(posX,posY,UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX):
     for i in range(len(UUU)):
-        if posX>XMIN[i] and posX<XMAX[i] and posY>YMIN[i] and posY<YMAX[i]:
+        if posX>=XMIN[i] and posX<XMAX[i] and posY>=YMIN[i] and posY<YMAX[i]:
             # print('patch',i)
             # print('left',XMIN[i])
             # print('right',XMAX[i])
@@ -226,7 +226,7 @@ def preprocess_matrix_adaptive(rootpath = "/home/yusheng/CFDadapt/",
     
         if not os.path.exists(path):
             '''
-            os.mkdir(path)与os.makedirs(path)的区别是,当父目录不存在的时候os.mkdir(path)不会创建，os.makedirs(path)则会创建父目录
+            os.mkdir(path) doesn't make parent directory when it does not exist while os.makedirs(path) does
             '''
             # use utf-8 for path
             os.makedirs(path) 

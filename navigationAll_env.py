@@ -46,7 +46,8 @@ class DipoleSingleEnv(gym.Env):
             'egoOneSensor': (self._get_obs_ego1, 4),
             'egoOneSensorPlusOrt': (self._get_obs_ego1ort, 5),
             'egoTwoSensorLR': (self._get_obs_ego2lr, 6),
-            'egoTwoSensorFB': (self._get_obs_ego2fb, 6)
+            'egoTwoSensorFB': (self._get_obs_ego2fb, 6),
+            'egoTwoSensorLRGrad': (self._get_obs_ego2lrgrad, 6)
             }
         self.mode = param.flowMode
         self.flow = flow_dict[param.flowMode]
@@ -97,15 +98,12 @@ class DipoleSingleEnv(gym.Env):
         terminal = False
         dt = self.dt
         self.oldpos = list(self.pos)
-        # print(self.pos)
         # compute the fish nose position
-        
         disToTarget_old = np.sqrt((self.pos[0]-self.target[0])**2+(self.pos[1]-self.target[1])**2)
-        
+
         # integrate the dynamics system
         delta_gammma_normalized = action[0]*self.flex*2*self.speed
-        # print(self.vel)
-        # print(self.pos)
+        
         def reach(t, y):
             return np.sqrt((y[0]-self.target[0])**2+(y[1]-self.target[1])**2)-0.2
         reach.terminal = True
@@ -122,7 +120,6 @@ class DipoleSingleEnv(gym.Env):
         dDisToTarget = disToTarget_new - disToTarget_old
         
         # terminal = self.__terminal()          # termination condition
-        # print(action)
         reward = 0
         reward += -dDisToTarget
         if disToTarget_new<0.15:
@@ -130,8 +127,7 @@ class DipoleSingleEnv(gym.Env):
             terminal = True
         if self.pos[0]>self.permittedR or self.pos[0]<self.permittedL or self.pos[1]<self.permittedD or self.pos[1]>self.permittedU:
             terminal = True
-        # print('time',self.time)
-        # print('terminal',terminal)
+            
         return self.obs(), reward, terminal, {}
     def __firstorderdt(self,t,pos,delta_gammma_normalized):
         u = np.cos(self.pos[2])*self.speed
@@ -237,13 +233,19 @@ class DipoleSingleEnv(gym.Env):
         self.trail = []
         return self.obs()
     """A series of observations to choose from"""
-    def _get_obs_lab1(self):                 # get the orientation (reltative to the targeted direction) and the shape
+    def _get_obs_lab1(self):
+        """
+        swimmer position, orientation and local flow field in lab frame
+        """
         uVK,vVK,oVK = self.flow(self.pos[0:2], self.time)
         ort = self.pos[-1]
         dx = self.target[0] - self.pos[0]
         dy = self.target[1] - self.pos[1]
         return np.array([dx,dy,ort,uVK,vVK])
-    def _get_obs_ego1(self):                 # get the orientation (reltative to the targeted direction) and the shape
+    def _get_obs_ego1(self):
+        """
+        egocentric swimmer position and local flow field
+        """
         uVK,vVK,oVK = self.flow(self.pos[0:2], self.time)
         ort = self.pos[-1]
         dx = self.target[0] - self.pos[0]
@@ -254,7 +256,10 @@ class DipoleSingleEnv(gym.Env):
         relu = uVK*np.cos(ort) + vVK*np.sin(ort)
         relv = -uVK*np.sin(ort) + vVK*np.cos(ort)
         return np.array([relx,rely,relu,relv])
-    def _get_obs_ego1ort(self):                 # get the orientation (reltative to the targeted direction) and the shape
+    def _get_obs_ego1ort(self):
+        """
+        egocentric swimmer position, local flow field, plus global orientation
+        """
         uVK,vVK,oVK = self.flow(self.pos[0:2], self.time)
         ort = self.pos[-1]
         dx = self.target[0] - self.pos[0]
@@ -265,9 +270,12 @@ class DipoleSingleEnv(gym.Env):
         relu = uVK*np.cos(ort) + vVK*np.sin(ort)
         relv = -uVK*np.sin(ort) + vVK*np.cos(ort)
         return np.array([relx,rely,relu,relv,ort])
-    def _get_obs_ego2lr(self):                 # get the orientation (reltative to the targeted direction) and the shape
+    def _get_obs_ego2lr(self):
+        """
+        egocentric swimmer position and local flow fields from 2 sensors located on the left and right of the swimmer
+        """
         posLeft = self.pos[0:2] + np.array([-self.bw/2*np.sin(self.pos[-1]),self.bw/2*np.cos(self.pos[-1])])
-        posRight = 2*self.pos[0:2] - posLeft
+        posRight = np.array(self.pos[0:2])*2 - posLeft
         uVKL,vVKL,_ = self.flow(posLeft,self.time)
         uVKR,vVKR,_ = self.flow(posRight,self.time)
         ort = self.pos[-1]
@@ -281,9 +289,32 @@ class DipoleSingleEnv(gym.Env):
         reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
         relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
         return np.array([relx,rely,reluL,relvL,reluR,relvR])
-    def _get_obs_ego2fb(self):                 # get the orientation (reltative to the targeted direction) and the shape
+    def _get_obs_ego2lrgrad(self):
+        """
+        egocentric swimmer position and local flow field and lateral gradient
+        """
+        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(self.pos[-1]), 0.05*np.cos(self.pos[-1])])
+        posRight = np.array(self.pos[0:2])*2 - posLeft
+        uVKL,vVKL,_ = self.flow(posLeft,self.time)
+        uVKR,vVKR,_ = self.flow(posRight,self.time)
+        
+        ort = self.pos[-1]
+        dx = self.target[0] - self.pos[0]
+        dy = self.target[1] - self.pos[1]
+
+        relx = dx*np.cos(ort) + dy*np.sin(ort)
+        rely = -dx*np.sin(ort) + dy*np.cos(ort)
+        reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
+        relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
+        reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
+        relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+        return np.array([relx, rely, (reluL + reluR)/2, (relvL + relvR)/2, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
+    def _get_obs_ego2fb(self):
+        """
+        egocentric swimmer position and local flow fields from 2 sensors located on the front and back of the swimmer
+        """
         posFront = self.pos[0:2] + np.array([self.bw/2*np.cos(self.pos[-1]),self.bw/2*np.sin(self.pos[-1])])
-        posBack = 2*self.pos[0:2] - posFront
+        posBack = np.array(self.pos[0:2])*2 - posFront
         uVKF,vVKF,_ = self.flow(posFront,self.time)
         uVKB,vVKB,_ = self.flow(posBack,self.time)
         ort = self.pos[-1]
@@ -321,17 +352,17 @@ class DipoleSingleEnv(gym.Env):
             else:
                 return rendering.PolyLine(points, True)
         
-        def draw_lasting_circle(Viewer, radius=10, res=30, filled=True, **attrs):
-            geom = rendering.make_circle(radius=radius, res=res, filled=filled)
-            rendering._add_attrs(geom, attrs)
-            Viewer.add_geom(geom)
-            return geom
+        # def draw_lasting_circle(Viewer, radius=10, res=30, filled=True, **attrs):
+        #     geom = rendering.make_circle(radius=radius, res=res, filled=filled)
+        #     rendering._add_attrs(geom, attrs)
+        #     Viewer.add_geom(geom)
+        #     return geom
         
-        def draw_lasting_line(Viewer, start, end, **attrs):
-            geom = rendering.Line(start, end)
-            rendering._add_attrs(geom, attrs)
-            Viewer.add_geom(geom)
-            return geom
+        # def draw_lasting_line(Viewer, start, end, **attrs):
+        #     geom = rendering.Line(start, end)
+        #     rendering._add_attrs(geom, attrs)
+        #     Viewer.add_geom(geom)
+        #     return geom
         
         def draw_ellipse(Viewer, major=10, minor=5, res=30, filled=True, **attrs):
             geom = make_ellipse(major=major, minor=minor, res=res, filled=filled)
@@ -391,7 +422,7 @@ class DipoleSingleEnv(gym.Env):
         else:
             """Load CFD images"""
             cfdimage = bgimage(cf.read_image(self.time, rootpath = self.cfdpath, dump_interval = 10, frame_rate = self.cfd_framerate),32,16)
-            # cfdimage.flip = True
+            # cfdimage.flip = True     # to flip the image horizontally
             self.viewer.add_onetime(cfdimage)
 
         """draw the axes"""
@@ -427,7 +458,6 @@ class DipoleSingleEnv(gym.Env):
         # self.viewer.draw_line((Xnose, Ynose), (self.target[0], self.target[1]))
         
         
-        
         """fish shape"""
         for i in range(1):
             fish = draw_ellipse(self.viewer,major=self.bl/2, minor=self.bw/2, res=30, filled=False)
@@ -444,7 +474,6 @@ class DipoleSingleEnv(gym.Env):
         
 
         # from pyglet.window import mouse
-        
         @self.viewer.window.event
 #        def on_mouse_press(x, y, buttons, modifiers):
         def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
