@@ -47,7 +47,8 @@ class DipoleSingleEnv(gym.Env):
             'egoOneSensorPlusOrt': (self._get_obs_ego1ort, 5),
             'egoTwoSensorLR': (self._get_obs_ego2lr, 6),
             'egoTwoSensorFB': (self._get_obs_ego2fb, 6),
-            'egoTwoSensorLRGrad': (self._get_obs_ego2lrgrad, 6)
+            'egoTwoSensorLRGrad': (self._get_obs_ego2lrgrad, 6),
+            'egoTwoSensorFBGrad': (self._get_obs_ego2fbgrad, 6)
             }
         self.mode = param.flowMode
         self.flow = flow_dict[param.flowMode]
@@ -274,7 +275,8 @@ class DipoleSingleEnv(gym.Env):
         """
         egocentric swimmer position and local flow fields from 2 sensors located on the left and right of the swimmer
         """
-        posLeft = self.pos[0:2] + np.array([-self.bw/2*np.sin(self.pos[-1]),self.bw/2*np.cos(self.pos[-1])])
+        # posLeft = self.pos[0:2] + np.array([-self.bw/2*np.sin(self.pos[-1]),self.bw/2*np.cos(self.pos[-1])])
+        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(self.pos[-1]), 0.05*np.cos(self.pos[-1])])
         posRight = np.array(self.pos[0:2])*2 - posLeft
         uVKL,vVKL,_ = self.flow(posLeft,self.time)
         uVKR,vVKR,_ = self.flow(posRight,self.time)
@@ -313,7 +315,7 @@ class DipoleSingleEnv(gym.Env):
         """
         egocentric swimmer position and local flow fields from 2 sensors located on the front and back of the swimmer
         """
-        posFront = self.pos[0:2] + np.array([self.bw/2*np.cos(self.pos[-1]),self.bw/2*np.sin(self.pos[-1])])
+        posFront = self.pos[0:2] + np.array([self.bw/2*np.cos(self.pos[-1]), self.bw/2*np.sin(self.pos[-1])])
         posBack = np.array(self.pos[0:2])*2 - posFront
         uVKF,vVKF,_ = self.flow(posFront,self.time)
         uVKB,vVKB,_ = self.flow(posBack,self.time)
@@ -328,6 +330,25 @@ class DipoleSingleEnv(gym.Env):
         reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
         relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
         return np.array([relx,rely,reluF,relvF,reluB,relvB])
+    def _get_obs_ego2fbgrad(self):
+        """
+        egocentric swimmer position and local flow fields from 2 sensors located on the front and back of the swimmer
+        """
+        posFront = self.pos[0:2] + np.array([0.05*np.cos(self.pos[-1]), 0.05*np.sin(self.pos[-1])])
+        posBack = np.array(self.pos[0:2])*2 - posFront
+        uVKF,vVKF,_ = self.flow(posFront,self.time)
+        uVKB,vVKB,_ = self.flow(posBack,self.time)
+        ort = self.pos[-1]
+        dx = self.target[0] - self.pos[0]
+        dy = self.target[1] - self.pos[1]
+
+        relx = dx*np.cos(ort) + dy*np.sin(ort)
+        rely = -dx*np.sin(ort) + dy*np.cos(ort)
+        reluF = uVKF*np.cos(ort) + vVKF*np.sin(ort)
+        relvF = -uVKF*np.sin(ort) + vVKF*np.cos(ort)
+        reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
+        relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
+        return np.array([relx, rely, (reluF + reluB)/2, (relvF + relvB)/2, (reluF - reluB)/0.1, (relvF - relvB)/0.1])
     def render(self, mode='human'):
 #        print(self.pos)
         from gym.envs.classic_control import rendering
