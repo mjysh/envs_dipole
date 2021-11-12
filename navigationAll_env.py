@@ -26,7 +26,7 @@ class DipoleSingleEnv(gym.Env):
     }
 
     def __init__(self,  paramSource = 'envParam_default'):
-        param = importlib.import_module(paramSource)
+        param = importlib.import_module('settings.'+paramSource)
         # size and parameters
         self.speed = param.mu
         self.bl = param.bl
@@ -53,7 +53,11 @@ class DipoleSingleEnv(gym.Env):
         self.mode = param.flowMode
         self.flow = flow_dict[param.flowMode]
         self.obs, obs_num = obs_dict[param.obsMode]
-
+        self.A = param.A
+        self.lam = param.lam
+        self.Gamma = param.Gamma
+        self.bgflow = param.bgflow
+        self.cut = param.cut
         if (self.mode == 'CFD'):
             self.permittedL = param.cfdDomainL
             self.permittedR = param.cfdDomainR
@@ -159,7 +163,7 @@ class DipoleSingleEnv(gym.Env):
         Gamma = self.Gamma
         lam = self.lam
         z = pos[0]+1j*pos[1]
-        U = Gamma/2/np.pi*np.tanh(2*np.pi*A/lam)+self.bgflow
+        U = Gamma/2/lam*np.tanh(2*np.pi*A/lam)+self.bgflow
         wVK = 1j*Gamma/2/lam*(1/np.tan(np.pi*(z + 1j*A - t*U)/lam) - 1/np.tan(np.pi*(z-lam/2-1j*A - t*U)/lam));
         uVK = np.real(wVK)
         vVK = -np.imag(wVK)
@@ -195,11 +199,8 @@ class DipoleSingleEnv(gym.Env):
     def reset(self, position = None, target = None):   # reset the environment setting
         # print(Fore.RED + 'RESET ENVIRONMENT')
         # print(Style.RESET_ALL)
-        if self.mode == 'reduced':
-            center = 0
-        else:
-            center = (self.permittedR + self.permittedL)/2
-
+        UpDown = np.random.choice([1,-1])
+        center = (self.permittedR + self.permittedL)/2            
         if position is not None:
             self.pos = position
         else:
@@ -208,7 +209,7 @@ class DipoleSingleEnv(gym.Env):
             ####################circular zone#######################
             r = 2*np.sqrt(np.random.rand())
             the = np.random.rand()*2*np.pi
-            self.pos = [center + np.cos(the)*r, -(2+self.region_offset)+np.sin(the)*r, np.random.rand()*2*np.pi]
+            self.pos = [center + np.cos(the)*r, -UpDown*(2+self.region_offset)+np.sin(the)*r, np.random.rand()*2*np.pi]
             ########################################################
             ############square zone###############
             # X = (self.permittedR + 3*self.permittedL)/4+np.random.rand()*(self.permittedR - self.permittedL)/2
@@ -221,7 +222,7 @@ class DipoleSingleEnv(gym.Env):
             ####################circular zone####################
             r = 2*np.sqrt(np.random.rand())
             the = np.random.rand()*2*np.pi
-            self.set_target(center+np.cos(the)*r,(2+self.region_offset)+np.sin(the)*r)
+            self.set_target(center+np.cos(the)*r,UpDown*(2+self.region_offset)+np.sin(the)*r)
             ################################################
             ############square zone###############
             # tx = (self.permittedR + 3*self.permittedL)/4+np.random.rand()*(self.permittedR - self.permittedL)/2
@@ -422,12 +423,10 @@ class DipoleSingleEnv(gym.Env):
             # lowerbound = -bound+self.target[1]/2
             # upperbound = bound+self.target[1]/2
             self.viewer.set_bounds(leftbound,rightbound,lowerbound,upperbound)
-            
-        
         if (self.mode == 'reduced'):
             """"vortex street"""
             # vortexN = np.ceil((rightbound - leftbound)/self.lam)
-            U = self.Gamma/2/np.pi*np.tanh(2*np.pi*self.A/self.lam)+self.bgflow
+            U = self.Gamma/2/self.lam*np.tanh(2*np.pi*self.A/self.lam)+self.bgflow
             phase = (U*self.time)%self.lam
             vorDownX = np.arange((phase-leftbound)%self.lam+leftbound,rightbound,self.lam)
             vortexN = len(vorDownX)
