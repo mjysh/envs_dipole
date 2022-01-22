@@ -2,7 +2,7 @@
 from PIL import Image
 import torch
 import numpy as np
-import navigationAll_env as fish
+import sourcefind_env as swimmer
 # import dipole_observation as fish
 import time
 from gym import wrappers
@@ -11,45 +11,27 @@ device = torch.device("cpu")
 def test():
     ############## Hyperparameters ##############
     targetpos = np.array([0.,3.])
-    env_name = "singleDipole-v0"
-    # env = fish.DipoleSingleEnv(paramSource = 'envParam_default')
-    env = fish.DipoleSingleEnv(paramSource = 'envParam_ego2sensorLRGradCFDwrot')
+    env = swimmer.DipoleSingleEnv(paramSource = 'envParam_sourceseeking') 
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     
-    n_episodes = 2          # num of episodes to run
-    max_timesteps = 100    # max timesteps in one episode
+    n_episodes = 1          # num of episodes to run
+    max_timesteps = 2000    # max timesteps in one episode
     render = True           # render the environment
-    save_gif = False        # png images are saved in gif folder
     
-    # filename and directory to load model from
-    # directory = "./policy/simpleObs/1/"
-    # filename = 'PPO_{}_Target{:06d}.pth'.format(env_name,5000)
-
-    # action_std = 0.01        # constant std for action distribution (Multivariate Normal)
-    # K_epochs = 80           # update policy for K epochs
-    # eps_clip = 0.2          # clip parameter for PPO
-    # gamma = 0.99            # discount factor
-    
-    # lr = 0.0003             # parameters for Adam optimizer
-    # betas = (0.9, 0.999)
-    #############################################
-    
-    # memory = Memory()
-    # ppo = PPO(state_dim, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip)
-    # ppo.policy_old.load_state_dict(torch.load(directory+filename,map_location=device))
     beta_history = np.zeros((max_timesteps+1,n_episodes))
     x_history = np.zeros((max_timesteps+1,n_episodes))
     y_history = np.zeros((max_timesteps+1,n_episodes))
     for ep in range(1, n_episodes+1):
         ep_reward = 0
-        env = wrappers.Monitor(env, './Movies/test',force = True)
-        state = env.reset(position = [-1.,0.,0.])
+        env = wrappers.Monitor(env, './Movies/sourceseekingtest',force = True)
+        state = env.reset(position = [-0.,0.5,np.pi/2], target = [8.,0.])
         state_his = state
         env.done = False
         for t in range(max_timesteps):
             # action = ppo.select_action(state, memory)
-            action = [0.0]
+            print(state)
+            action = -np.sign(state)
             state, reward, done, _ = env.step(action)
             ep_reward += reward
             # print(state)
@@ -63,10 +45,6 @@ def test():
                     print(key.Q)
                     if symbol == key.Q:
                         env.done = True
-            if save_gif:
-                 img = env.render(mode = 'rgb_array')
-                 img = Image.fromarray(img)
-                 img.save('./gif/{}.jpg'.format(t))  
             if env.done:
                 break
             beta_history[t,ep-1] = env.pos[-1]

@@ -3,8 +3,8 @@ bl = 1               # length
 bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
-flowMode = 'CFD'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
-obsMode = 'labframeOneSensor'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorFB'
+flowMode = 'CFDwRot'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
+obsMode = 'egoTwoSensorLRSingle2Grad'      # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'
 ##===============================================================================================##
 dt = 0.1
 mu = 0.8                                  # swimming speed
@@ -19,18 +19,18 @@ reducedDomainL = -8
 reducedDomainR = 8
 reducedDomainU = 5.5
 reducedDomainD = -5.5
-A = 0.3
-lam = 4
+A = 0.5
+lam = 3
 Gamma = 3
 bgflow = -1.0                             # background horizontal flow velocity
-cut = 0.6
+cut = 0.5
 
 ##===============================================================================================##
 #  for CFD
 # permitted range of area
 cfdDomainL = -15.5
-cfdDomainR = 8.5
+cfdDomainR = 7.5
 cfdDomainU = 5.5
 cfdDomainD = -5.5
-time_span = 10                 # maximum simulation time
+time_span = 60                 # maximum simulation time
 level_limit = 3                # max level of CFD grids, higher level means higher precision
