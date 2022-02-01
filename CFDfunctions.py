@@ -55,9 +55,10 @@ def adapt_interp_test(time = 0.634,posX = -0.883,posY = 0.43,
 def adapt_time_interp(UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX,frame_rate,time = 0.634,posX = -0.883,posY = 0.43):
     tn = len(UUU)
     frame = time*frame_rate
-    if frame>tn-1:
-        frameDown = tn-1
-        frameUp = frameDown
+    if frame > tn-1:
+        frameUp = frameDown = tn - 1
+    elif frame < 0:
+        frameUp = frameDown = 0
     else:
         frameUp = np.int64(np.ceil(frame))
         frameDown = np.int64(np.floor(frame))
@@ -130,6 +131,8 @@ def adapt_load_data(time_span,source_path,level_limit):
     return frame_rate,time_span,UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX
         # ,l
 def adapt_space_Interp(posX,posY,UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX):
+    rx = -1
+    ry = -1
     for i in range(len(UUU)):
         if posX>=XMIN[i] and posX<XMAX[i] and posY>=YMIN[i] and posY<YMAX[i]:
             # print('patch',i)
@@ -159,7 +162,8 @@ def adapt_space_Interp(posX,posY,UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX):
     # dy = yf[1]-yf[0]
     # xa = np.array([[xf[indexX] - posX, posX - xf[indexX-1]]])/dx
     # ya = np.array([[yf[indexY] - posY] , [posY - yf[indexY-1]]])/dy
-    
+    if rx == -1:
+        print(posX,posY,'cannot be reached')
     xa = np.array([[1-rx/dx, rx/dx]])
     ya = np.array([[1-ry/dy] , [ry/dy]])
     #########################################################

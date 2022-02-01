@@ -13,12 +13,12 @@ def test():
     targetpos = np.array([0.,3.])
     env_name = "singleDipole-v0"
     # env = fish.DipoleSingleEnv(paramSource = 'envParam_default')
-    env = fish.DipoleSingleEnv(paramSource = 'envParam_ego2sensorLRGradCFDwrot')
+    env = fish.DipoleSingleEnv(paramSource = 'envParam_ego2sensorLRDirCFD')
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     
-    n_episodes = 2          # num of episodes to run
-    max_timesteps = 100    # max timesteps in one episode
+    n_episodes = 1          # num of episodes to run
+    max_timesteps = 200    # max timesteps in one episode
     render = True           # render the environment
     save_gif = False        # png images are saved in gif folder
     
@@ -44,12 +44,13 @@ def test():
     for ep in range(1, n_episodes+1):
         ep_reward = 0
         env = wrappers.Monitor(env, './Movies/test',force = True)
-        state = env.reset(position = [-1.,0.,0.])
+        state = env.reset(position = [-4.,-2.0,0.])
         state_his = state
         env.done = False
         for t in range(max_timesteps):
             # action = ppo.select_action(state, memory)
-            action = [0.0]
+            # action = [0.0]
+            action = [2*((state[0]>0)-0.5)]
             state, reward, done, _ = env.step(action)
             ep_reward += reward
             # print(state)

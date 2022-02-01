@@ -9,7 +9,6 @@ Created on Tue Feb 16 15:07:00 2021
 # required pacckages: NumPy, SciPy, openAI gym
 # written in the framwork of gym
 # ------------------------------------------------------------------------
-from math import sqrt
 import gym
 from gym import spaces
 from gym.utils import seeding
@@ -18,7 +17,7 @@ import numpy as np
 from scipy import integrate
 # from colorama import Fore, Back, Style
 import CFDfunctions as cf
-import time as timer
+# import time as timer
 import importlib
 class DipoleSingleEnv(gym.Env):
     metadata = {
@@ -26,7 +25,7 @@ class DipoleSingleEnv(gym.Env):
         'video.frames_per_second' : 30
     }
 
-    def __init__(self,  paramSource = 'envParam_default'):
+    def __init__(self,  paramSource = 'envParam_sourceseeking'):
         param = importlib.import_module('settings.'+paramSource)
         # size and parameters
         self.speed = param.mu
@@ -35,8 +34,7 @@ class DipoleSingleEnv(gym.Env):
         self.dt = param.dt
         self.angSpeed = param.angularSpeed
         self.cfdpath = param.cfdpath
-
-        self.region_offset = param.train_offset
+        self.sensorL = param.sensorLocation
         flow_dict = {
             'CFD': self.__flowVK_CFD,
             'reduced': self.__flowVK_reduced,
@@ -47,12 +45,6 @@ class DipoleSingleEnv(gym.Env):
         self.mode = param.flowMode
         self.flow = flow_dict[param.flowMode]
         self.obs, obs_num = obs_dict[param.obsMode]
-        self.A = param.A
-        self.lam = param.lam
-        self.Gamma = param.Gamma
-        self.bgflow = param.bgflow
-        self.cut = param.cut
-        self.sensorL = param.sensorLocation
         if (self.mode == 'CFD'):
             self.permittedL = param.cfdDomainL
             self.permittedR = param.cfdDomainR
@@ -102,14 +94,14 @@ class DipoleSingleEnv(gym.Env):
         disToTarget_old = np.sqrt((self.pos[0]-self.target[0])**2+(self.pos[1]-self.target[1])**2)
 
         # integrate the dynamics system
-        delta_gammma_normalized = self.angSpeed*action
+        angspeed_adjusted = action[0]*self.angSpeed
         
         def reach(t, y):
             return np.sqrt((y[0]-self.target[0])**2+(y[1]-self.target[1])**2)-0.2
         reach.terminal = True
         options = {'rtol':1e-4,'atol':1e-8,'max_step': 1e-2}
 
-        sol = integrate.solve_ivp(lambda t,y: self.__firstorderdt(t,y,delta_gammma_normalized), [self.time,self.time+dt],
+        sol = integrate.solve_ivp(lambda t,y: self.__firstorderdt(t,y,angspeed_adjusted), [self.time,self.time+dt],
                             self.pos, method = 'RK45',events = None, vectorized=False,
                             dense_output = False, **options)
         self.pos = sol.y[:,-1]
@@ -122,31 +114,28 @@ class DipoleSingleEnv(gym.Env):
         # terminal = self.__terminal()          # termination condition
         reward = 0
         reward += -dDisToTarget
-        if disToTarget_new<0.15:
+        if disToTarget_new < 1:
             reward += 200
             terminal = True
         if self.pos[0]>self.permittedR or self.pos[0]<self.permittedL or self.pos[1]<self.permittedD or self.pos[1]>self.permittedU:
             terminal = True
-        # print(self.vel)
+            
         return self.obs(), reward, terminal, {}
-    def __firstorderdt(self,t,pos,delta_gammma_normalized):
-        u = np.cos(self.pos[2])*self.speed
-        v = np.sin(self.pos[2])*self.speed
+    def __firstorderdt(self,t,pos,angular_speed):
+        u = np.cos(pos[2])*self.speed
+        v = np.sin(pos[2])*self.speed
         # angular velocity induced by strength difference
-        w = delta_gammma_normalized
+        w = angular_speed
         vel = np.array([u, v, w])
-        # vel = self.flow(self.pos,self.time)
-        # print(vel)
         self.vel = vel
         return vel
     """CFD wake"""
     def __flowVK_CFD(self, pos, t):
-        x = pos[0] - 8
+        x = pos[0]
         y = pos[1]
         """fixed or adaptive mesh"""
-        # print('t=',t)
-        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,self.cfd_framerate,time = t,posX = x,posY = y)
-        oVK = 0
+        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,\
+                                            self.cfd_framerate,time = t % self.time_span,posX = x,posY = y)
         return uVK,vVK,oVK
     """reduced order"""
     def __flowVK_reduced(self, pos, t):
@@ -155,7 +144,11 @@ class DipoleSingleEnv(gym.Env):
         lam = self.lam
         z = pos[0]+1j*pos[1]
         U = Gamma/2/lam*np.tanh(2*np.pi*A/lam)+self.bgflow
-        wVK = 1j*Gamma/2/lam*(1/np.tan(np.pi*(z + 1j*A - t*U)/lam) - 1/np.tan(np.pi*(z-lam/2-1j*A - t*U)/lam));
+        # print("lam",lam,"z",z,"A",A,"t",t,"U",U, "tan", np.pi*(z + 1j*A - t*U)/lam)
+        if np.abs(z + 1j*A - t*U) > 0 and np.abs(z-lam/2-1j*A - t*U) > 0:
+            wVK = 1j*Gamma/2/lam*(1/np.tan(np.pi*(z + 1j*A - t*U)/lam) - 1/np.tan(np.pi*(z-lam/2-1j*A - t*U)/lam))
+        else:
+            wVK = 0
         uVK = np.real(wVK)
         vVK = -np.imag(wVK)
         if uVK>self.cut:
@@ -169,57 +162,23 @@ class DipoleSingleEnv(gym.Env):
         uVK += self.bgflow
         oVK = 0
         return uVK,vVK,oVK
-    def __initialConfig(self,mode, init_num):
-        # get the initial configuration of the fish
-        ####################circular zone#######################
-        r = 2*np.sqrt(np.random.rand())
-        the = np.random.rand()*2*np.pi
-        center = (self.permittedR + self.permittedL)/2
-        X, Y, theta = center+np.cos(the)*r, -(2+self.region_offset)+np.sin(the)*r, np.random.rand()*2*np.pi
-        ########################################################
-        ############square zone###############
-        # X = (self.permittedR + 3*self.permittedL)/4+np.random.rand()*(self.permittedR - self.permittedL)/2
-        # Y = -self.region_offset + np.random.rand()*self.permittedD/2
-        # theta = np.random.rand()*2*np.pi
-        #################################################
-        return np.array([X, Y, theta])
     def __prescribedControl(self,time, position = None):
         # Used when manually precribing the control (disregarding the RL policy, mainly for test)
         """swimming"""
         return 0
-    def reset(self, position = None, target = None):   # reset the environment setting
+    def reset(self, position = None):   # reset the environment setting
         # print(Fore.RED + 'RESET ENVIRONMENT')
         # print(Style.RESET_ALL)
-        UpDown = np.random.choice([1,-1])
-        center = (self.permittedR + self.permittedL)/2            
+        center = (self.permittedR + self.permittedL)/2
+        width = (self.permittedR - self.permittedL)/2
+        height = (self.permittedU - self.permittedD)/2
         if position is not None:
             self.pos = position
         else:
-            self.pos = self.__initialConfig(1, 1)
-            # get the initial configuration of the fish
             ####################circular zone#######################
-            r = 2*np.sqrt(np.random.rand())
-            the = np.random.rand()*2*np.pi
-            self.pos = [center + np.cos(the)*r, -UpDown*(2+self.region_offset)+np.sin(the)*r, np.random.rand()*2*np.pi]
-            ########################################################
-            ############square zone###############
-            # X = (self.permittedR + 3*self.permittedL)/4+np.random.rand()*(self.permittedR - self.permittedL)/2
-            # Y = -self.region_offset + np.random.rand()*self.permittedD/2
-            # theta = np.random.rand()*2*np.pi
+            self.pos = [center + width*np.random.rand(), height*np.random.rand(), np.random.rand()*2*np.pi]
             #################################################
-        if target is not None:
-            self.set_target(target[0],target[1])
-        else:
-            ####################circular zone####################
-            r = 2*np.sqrt(np.random.rand())
-            the = np.random.rand()*2*np.pi
-            self.set_target(center+np.cos(the)*r,UpDown*(2+self.region_offset)+np.sin(the)*r)
-            ################################################
-            ############square zone###############
-            # tx = (self.permittedR + 3*self.permittedL)/4+np.random.rand()*(self.permittedR - self.permittedL)/2
-            # ty = self.region_offset + np.random.rand()*self.permittedU/2
-            # self.set_target(tx,ty)
-            #######################################
+        self.set_target(0, 0)
         """"""
         self.vel = np.zeros_like(self.pos)
         self.time = 0
@@ -242,7 +201,6 @@ class DipoleSingleEnv(gym.Env):
         UR = np.sqrt(uVKR**2 + vVKR**2)
         # print('flow speed',UL,UR)
         return np.array([(UL - UR)/0.1])
-
     def render(self, mode='human'):
 #        print(self.pos)
         from gym.envs.classic_control import rendering
@@ -286,13 +244,18 @@ class DipoleSingleEnv(gym.Env):
             return geom
         class bgimage(rendering.Image):
             def render1(self):
-                self.img.blit(-self.width/2, -self.height/2, width=self.width, height=self.height)
+                # l = 102
+                # r = 972
+                # b = 487
+                # t = 53
+                # self.img.blit(-self.width/2/(r-l)*(l+r), -self.height/2/(b-t)*(self.img.height*2-b-t), width=self.width/(r-l)*self.img.width, height=self.height/(b-t)*self.img.height)
+                self.img.blit(-self.width/4*3, -self.height/2, width=self.width, height=self.height)
         
         
         x,y,theta = self.pos
         if (self.mode == 'CFD'):
-            leftbound = -16
-            rightbound = 8
+            leftbound = -24
+            rightbound = 1
             lowerbound = -8
             upperbound = 8
         elif (self.mode == 'reduced'):
@@ -329,7 +292,7 @@ class DipoleSingleEnv(gym.Env):
                 vortexDown.set_color(0,0,1)
         else:
             """Load CFD images"""
-            cfdimage = bgimage(cf.read_image(self.time, rootpath = self.cfdpath, dump_interval = 10, frame_rate = self.cfd_framerate),32,16)
+            cfdimage = bgimage(cf.read_image(self.time % self.time_span, rootpath = self.cfdpath, dump_interval = 10, frame_rate = self.cfd_framerate),32,16)
             # cfdimage.flip = True     # to flip the image horizontally
             self.viewer.add_onetime(cfdimage)
 
@@ -379,7 +342,6 @@ class DipoleSingleEnv(gym.Env):
             eyeTrans = rendering.Transform(translation=(x+np.cos(eyngle)*self.bl/4,y+np.sin(eyngle)*self.bl/4))
             eye.add_attr(eyeTrans)
             eye.set_color(.6,.3,.4)
-        
 
         # from pyglet.window import mouse
         @self.viewer.window.event

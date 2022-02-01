@@ -17,7 +17,7 @@ import numpy as np
 from scipy import integrate
 # from colorama import Fore, Back, Style
 import CFDfunctions as cf
-import time as timer
+# import time as timer
 import importlib
 class DipoleSingleEnv(gym.Env):
     metadata = {
@@ -52,16 +52,14 @@ class DipoleSingleEnv(gym.Env):
             'egoTwoSensorLRGradOnly': (self._get_obs_ego2lrgradonly, 4),
             'egoTwoSensorFBGrad': (self._get_obs_ego2fbgrad, 6),
             'egoTwoSensorLRSingleGrad': (self._get_obs_ego2lrsinglegrad, 5),
-            'egoTwoSensorLRSingle2Grad': (self._get_obs_ego2lrsingle2grad, 5)
+            'egoTwoSensorLRSingle2Grad': (self._get_obs_ego2lrsingle2grad, 5),
+            'egoFourSensorGradOnly': (self._get_obs_ego4gradonly, 6),
+            'egoTwoSensorLRDir': (self._get_obs_ego2lrdir, 5),
+            'egoOneSensorDir': (self._get_obs_ego1dir, 3)
             }
         self.mode = param.flowMode
         self.flow = flow_dict[param.flowMode]
         self.obs, obs_num = obs_dict[param.obsMode]
-        self.A = param.A
-        self.lam = param.lam
-        self.Gamma = param.Gamma
-        self.bgflow = param.bgflow
-        self.cut = param.cut
         if (self.mode == 'CFD' or self.mode == 'CFDwRot'):
             self.permittedL = param.cfdDomainL
             self.permittedR = param.cfdDomainR
@@ -139,8 +137,8 @@ class DipoleSingleEnv(gym.Env):
             
         return self.obs(), reward, terminal, {}
     def __firstorderdt(self,t,pos,delta_gammma_normalized):
-        u = np.cos(self.pos[2])*self.speed
-        v = np.sin(self.pos[2])*self.speed
+        u = np.cos(pos[2])*self.speed
+        v = np.sin(pos[2])*self.speed
         # angular velocity induced by strength difference
         w = delta_gammma_normalized/self.bw
         uVK,vVK,oVK = self.flow((pos[0],pos[1]), t)
@@ -150,17 +148,20 @@ class DipoleSingleEnv(gym.Env):
         return vel
     """CFD wake"""
     def __flowVK_CFD(self, pos, t):
-        x = pos[0] - 8
+        x = pos[0]
         y = pos[1]
+        
         """fixed or adaptive mesh"""
-        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,self.cfd_framerate,time = t,posX = x,posY = y)
+        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,\
+                                            self.cfd_framerate,time = t % self.time_span,posX = x,posY = y)
         oVK = 0
         return uVK,vVK,oVK
     def __flowVK_CFDWR(self, pos, t):
-        x = pos[0] - 8
+        x = pos[0]
         y = pos[1]
         """fixed or adaptive mesh"""
-        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,self.cfd_framerate,time = t,posX = x,posY = y)
+        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,\
+                                            self.cfd_framerate,time = t % self.time_span,posX = x,posY = y)
         return uVK,vVK,oVK
     """reduced order"""
     def __flowVK_reduced(self, pos, t):
@@ -208,9 +209,10 @@ class DipoleSingleEnv(gym.Env):
     def reset(self, position = None, target = None, UpDown = 1):   # reset the environment setting
         # print(Fore.RED + 'RESET ENVIRONMENT')
         # print(Style.RESET_ALL)
-        if (self.mode == 'reduced'):
-            UpDown = np.random.choice([1,-1])
-        # UpDown = 1
+        
+        # if (self.mode == 'reduced'):
+        #     UpDown = np.random.choice([1,-1])
+        # UpDown = -1
         center = (self.permittedR + self.permittedL)/2
         if position is not None:
             self.pos = position
@@ -264,6 +266,21 @@ class DipoleSingleEnv(gym.Env):
         dx = self.target[0] - self.pos[0]
         dy = self.target[1] - self.pos[1]
 
+        target_angle = np.arctan2(dy,dx)
+        relort = angle_normalize(target_angle - ort)
+
+        relu = uVK*np.cos(ort) + vVK*np.sin(ort)
+        relv = -uVK*np.sin(ort) + vVK*np.cos(ort)
+        return np.array([relort,relu,relv])
+    def _get_obs_ego1dir(self):
+        """
+        egocentric swimmer angular position and local flow field
+        """
+        uVK,vVK,oVK = self.flow(self.pos[0:2], self.time)
+        ort = self.pos[-1]
+        dx = self.target[0] - self.pos[0]
+        dy = self.target[1] - self.pos[1]
+
         relx = dx*np.cos(ort) + dy*np.sin(ort)
         rely = -dx*np.sin(ort) + dy*np.cos(ort)
         relu = uVK*np.cos(ort) + vVK*np.sin(ort)
@@ -273,7 +290,7 @@ class DipoleSingleEnv(gym.Env):
         """
         egocentric swimmer position and local flow field
         """
-        uVK,vVK,oVK = self.flow(self.pos[0:2], self.time)
+        uVK,vVK,oVK = self.__flowVK_CFDWR(self.pos[0:2], self.time)
         ort = self.pos[-1]
         dx = self.target[0] - self.pos[0]
         dy = self.target[1] - self.pos[1]
@@ -318,6 +335,27 @@ class DipoleSingleEnv(gym.Env):
         reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
         relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
         return np.array([relx,rely,reluL,relvL,reluR,relvR])
+    def _get_obs_ego2lrdir(self):
+        """
+        egocentric swimmer angular position and local flow fields from 2 sensors located on the left and right of the swimmer
+        """
+        ort = self.pos[-1]
+        # posLeft = self.pos[0:2] + np.array([-self.bw/2*np.sin(self.pos[-1]),self.bw/2*np.cos(self.pos[-1])])
+        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
+        posRight = np.array(self.pos[0:2])*2 - posLeft
+        uVKL,vVKL,_ = self.flow(posLeft,self.time)
+        uVKR,vVKR,_ = self.flow(posRight,self.time)
+
+        dx = self.target[0] - self.pos[0]
+        dy = self.target[1] - self.pos[1]
+        target_angle = np.arctan2(dy,dx)
+        relort = angle_normalize(target_angle - ort)
+
+        reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
+        relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
+        reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
+        relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+        return np.array([relort,reluL,relvL,reluR,relvR])
     def _get_obs_ego2lrgrad(self):
         """
         egocentric swimmer position and local flow field and lateral gradient
@@ -442,6 +480,37 @@ class DipoleSingleEnv(gym.Env):
         reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
         relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
         return np.array([relx, rely, (reluF + reluB)/2, (relvF + relvB)/2, (reluF - reluB)/0.1, (relvF - relvB)/0.1])
+    def _get_obs_ego4gradonly(self):
+        """
+        egocentric swimmer position and local flow field and lateral gradient
+        """
+        ort = self.pos[-1]
+        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
+        posRight = np.array(self.pos[0:2])*2 - posLeft
+        posFront = self.pos[0:2] + np.array([0.05*np.cos(ort), 0.05*np.sin(ort)])
+        posBack = np.array(self.pos[0:2])*2 - posFront
+
+        uVKL,vVKL,_ = self.flow(posLeft,self.time)
+        uVKR,vVKR,_ = self.flow(posRight,self.time)
+        uVKF,vVKF,_ = self.flow(posFront,self.time)
+        uVKB,vVKB,_ = self.flow(posBack,self.time)
+        
+        dx = self.target[0] - self.pos[0]
+        dy = self.target[1] - self.pos[1]
+
+        relx = dx*np.cos(ort) + dy*np.sin(ort)
+        rely = -dx*np.sin(ort) + dy*np.cos(ort)
+
+        reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
+        relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
+        reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
+        relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+
+        reluF = uVKF*np.cos(ort) + vVKF*np.sin(ort)
+        relvF = -uVKF*np.sin(ort) + vVKF*np.cos(ort)
+        reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
+        relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
+        return np.array([relx, rely, (reluL - reluR)/0.1, (relvL - relvR)/0.1, (reluF - reluB)/0.1, (relvF - relvB)/0.1])
     def render(self, mode='human'):
 #        print(self.pos)
         from gym.envs.classic_control import rendering
@@ -490,13 +559,13 @@ class DipoleSingleEnv(gym.Env):
                 # b = 487
                 # t = 53
                 # self.img.blit(-self.width/2/(r-l)*(l+r), -self.height/2/(b-t)*(self.img.height*2-b-t), width=self.width/(r-l)*self.img.width, height=self.height/(b-t)*self.img.height)
-                self.img.blit(-self.width/2, -self.height/2, width=self.width, height=self.height)
+                self.img.blit(-self.width/4*3, -self.height/2, width=self.width, height=self.height)
         
         
         x,y,theta = self.pos
         if (self.mode == 'CFD' or self.mode == 'CFDwRot'):
-            leftbound = -16
-            rightbound = 8
+            leftbound = -24
+            rightbound = 0
             lowerbound = -8
             upperbound = 8
         elif (self.mode == 'reduced'):
@@ -533,7 +602,7 @@ class DipoleSingleEnv(gym.Env):
                 vortexDown.set_color(0,0,1)
         else:
             """Load CFD images"""
-            cfdimage = bgimage(cf.read_image(self.time, rootpath = self.cfdpath, dump_interval = 10, frame_rate = self.cfd_framerate),32,16)
+            cfdimage = bgimage(cf.read_image(self.time % self.time_span, rootpath = self.cfdpath, dump_interval = 10, frame_rate = self.cfd_framerate),32,16)
             # cfdimage.flip = True     # to flip the image horizontally
             self.viewer.add_onetime(cfdimage)
 
@@ -583,7 +652,6 @@ class DipoleSingleEnv(gym.Env):
             eyeTrans = rendering.Transform(translation=(x+np.cos(eyngle)*self.bl/4,y+np.sin(eyngle)*self.bl/4))
             eye.add_attr(eyeTrans)
             eye.set_color(.6,.3,.4)
-        
 
         # from pyglet.window import mouse
         @self.viewer.window.event
