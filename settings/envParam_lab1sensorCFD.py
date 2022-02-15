@@ -30,7 +30,7 @@ cut = 0.5
 # permitted range of area
 cfdDomainL = -23.5
 cfdDomainR = -0.5
-cfdDomainU = 5.5
-cfdDomainD = -5.5
+cfdDomainU = 6
+cfdDomainD = -6
 time_span = 4.5                 # maximum simulation time (one wake period)
 level_limit = 3                # max level of CFD grids, higher level means higher precision

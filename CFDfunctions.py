@@ -163,7 +163,7 @@ def adapt_space_Interp(posX,posY,UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX):
     # xa = np.array([[xf[indexX] - posX, posX - xf[indexX-1]]])/dx
     # ya = np.array([[yf[indexY] - posY] , [posY - yf[indexY-1]]])/dy
     if rx == -1:
-        print(posX,posY,'cannot be reached')
+        print(posX,posY,'cannot be reached',XMIN,XMAX,YMIN,YMAX)
     xa = np.array([[1-rx/dx, rx/dx]])
     ya = np.array([[1-ry/dy] , [ry/dy]])
     #########################################################

@@ -25,14 +25,15 @@ def test():
     for ep in range(1, n_episodes+1):
         ep_reward = 0
         env = wrappers.Monitor(env, './Movies/sourceseekingtest',force = True)
-        state = env.reset(position = [-0.,0.5,np.pi/2], target = [8.,0.])
+        # state = env.reset(position = [-16.,3.5,np.pi/2])
+        state = env.reset()
         state_his = state
         env.done = False
         for t in range(max_timesteps):
             # action = ppo.select_action(state, memory)
             print(state)
             action = -np.sign(state)
-            state, reward, done, _ = env.step(action)
+            state, reward, env.done, _ = env.step(action)
             ep_reward += reward
             # print(state)
             if render:
@@ -46,6 +47,7 @@ def test():
                     if symbol == key.Q:
                         env.done = True
             if env.done:
+                print(t)
                 break
             beta_history[t,ep-1] = env.pos[-1]
             x_history[t,ep-1] = env.pos[0]

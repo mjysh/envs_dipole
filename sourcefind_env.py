@@ -75,8 +75,8 @@ class DipoleSingleEnv(gym.Env):
         high = np.array([np.finfo(np.float32).max] * obs_num)
         low = np.array([np.finfo(np.float32).min] * obs_num)
         # create the observation space and the action space
-        self.observation_space = spaces.Box(low=low, high=high, dtype=np.double)
-        self.action_space = spaces.Box(low = -1., high = 1., shape = (1,), dtype = np.double)
+        self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
+        self.action_space = spaces.Box(low = -1., high = 1., shape = (1,), dtype = np.float32)
 
         self.viewer = None
         self.seed()
@@ -114,7 +114,8 @@ class DipoleSingleEnv(gym.Env):
         # terminal = self.__terminal()          # termination condition
         reward = 0
         reward += -dDisToTarget
-        if disToTarget_new < 1:
+        # if self.pos[0] > -2 and abs(self.pos[1]<1):
+        if self.pos[0]**2 + self.pos[1]**2 < 4:
             reward += 200
             terminal = True
         if self.pos[0]>self.permittedR or self.pos[0]<self.permittedL or self.pos[1]<self.permittedD or self.pos[1]>self.permittedU:
@@ -170,13 +171,14 @@ class DipoleSingleEnv(gym.Env):
         # print(Fore.RED + 'RESET ENVIRONMENT')
         # print(Style.RESET_ALL)
         center = (self.permittedR + self.permittedL)/2
-        width = (self.permittedR - self.permittedL)/2
-        height = (self.permittedU - self.permittedD)/2
+        width = 5
+        height = 3
         if position is not None:
             self.pos = position
         else:
             ####################circular zone#######################
-            self.pos = [center + width*np.random.rand(), height*np.random.rand(), np.random.rand()*2*np.pi]
+            # self.pos = [center + width*np.random.rand(), height*np.random.rand(), np.random.rand()*2*np.pi]
+            self.pos = [4*np.random.rand()-9, 6*np.random.rand()-3, np.random.rand()*2*np.pi - np.pi]
             #################################################
         self.set_target(0, 0)
         """"""
@@ -195,6 +197,7 @@ class DipoleSingleEnv(gym.Env):
         posLeft = sensorPos + np.array([- 0.05*np.sin(ort), 0.05*np.cos(ort)])
         posRight = sensorPos*2 - posLeft
 
+        # print(self.time)
         uVKL,vVKL,_ = self.flow(posLeft,self.time)
         uVKR,vVKR,_ = self.flow(posRight,self.time)
         UL = np.sqrt(uVKL**2 + vVKL**2)

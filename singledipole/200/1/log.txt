@@ -1,0 +1,10 @@
+Episode 30 	 Avg length: 799 	 Avg reward: -0.10632973941622627
+Episode 60 	 Avg length: 799 	 Avg reward: -0.11783521043299201
+Episode 90 	 Avg length: 799 	 Avg reward: -0.06934445353033138
+Episode 120 	 Avg length: 799 	 Avg reward: 0.08056633668108368
+Episode 150 	 Avg length: 799 	 Avg reward: -0.06583367835279669
+Episode 180 	 Avg length: 799 	 Avg reward: 0.04959529097881361
+Episode 210 	 Avg length: 799 	 Avg reward: 0.03877533553022256
+Episode 240 	 Avg length: 799 	 Avg reward: 0.23750894578026988
+Episode 270 	 Avg length: 799 	 Avg reward: 0.3536136990328909
+Episode 300 	 Avg length: 799 	 Avg reward: 0.47031200435297993

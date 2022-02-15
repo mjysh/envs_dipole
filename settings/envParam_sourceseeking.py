@@ -9,7 +9,7 @@ sensorLocation = -0.9
 ##===============================================================================================##
 dt = 0.1
 mu = 0.25                                  # swimming speed
-angularSpeed = 1 	           	 	# amount of change allowed in vortex strength
+angularSpeed = 3 	           	 	# amount of change allowed in vortex strength
 cfdpath = '/home/yusheng/CFDadapt/'
 
 ##===============================================================================================##
@@ -28,9 +28,9 @@ cut = 0.5
 ##===============================================================================================##
 #  for CFD
 # permitted range of area
-cfdDomainL = -23.5
+cfdDomainL = -22.5
 cfdDomainR = 0.5
-cfdDomainU = 5.5
-cfdDomainD = -5.5
-time_span = 4.5                 # maximum simulation time
+cfdDomainU = 6.5
+cfdDomainD = -6.5
+time_span = 0.5                 # maximum simulation time
 level_limit = 3                # max level of CFD grids, higher level means higher precision
