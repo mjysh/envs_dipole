@@ -23,8 +23,10 @@ flowV = observations(:,5);
 % theta == 0
 
 %% flow field
-figure('Position',[955 263 900 857]);
-subplot(2,1,1)
+v = VideoWriter('lab.avi');
+open(v);
+figure('Position',[519 880 901 402]);
+% subplot(2,1,1)
 title('lab frame observation, $\theta=-180^\circ$')
 [bg,map] = imread("movie0000.png","png");hold on;
 image([-24,8],[-8,8],ind2rgb(bg,map));
@@ -36,7 +38,7 @@ plot(-12,2,'*',Color=[50/255,100/255,50/255]);
 % p = plot([initX(i), initX(i)+0.3*cos(initTheta(i))]-8, [initY(i), initY(i) + 0.3*sin(initTheta(i))],'Color',[reward(i),0,0],'LineWidth',1);
 % end
 colormap parula
-im=imagesc([-23,-1],[-5,5.25],reshape(actions(1:36:end),46,[]),'AlphaData',0.8,[-1,1]);hold on;
+im=imagesc([-23,-1],[-5,5.25],reshape(actions(1:36:end),42,[]),'AlphaData',0.8,[-1,1]);hold on;
 axis equal;
 % colorbar("Ticks",[],'Location','westoutside')
 cb = colorbar('Location','westoutside');
@@ -48,21 +50,27 @@ axis off
 the = 0:pi/200:pi*2;
 % plot training region
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
-
+frame = getframe(gcf);
+writeVideo(v,frame);
 % plot(-observations(end/4*3+1,1)-12,-observations(end/4*3+1,2)+2,'ko')
 for i = 2:36
     pause(0.5)
-    im.CData = reshape(actions(i:36:end),46,[]);
-    title(['lab frame observation, ','$\theta =', num2str(i/36*360-190),'^\circ$'])
+    im.CData = reshape(actions(i:36:end),42,[]);
+    title([num2str() 'observation, ','$\theta =', num2str(i/36*360-190),'^\circ$'])
+    xlim([-23.5,0]);
+    ylim([-6,6]);
     drawnow;
+    frame = getframe(gcf);
+    writeVideo(v,frame);
 end
+close(v);
 
-
-subplot(2,1,2);
+% subplot(2,1,2);
+figure();
 % test point
 testX = -18;
 testY = -1;
-plot(-18,-1,'bo')
+plot(-18,-1,'bo');
 plot([0:pi/18:pi-pi/18 -pi:pi/18:-pi/18],actions(logical((abs(deltaX-targetX+testX)<1e-3).*(abs(deltaY-targetY+testY)<1e-3))),'.');
 xlim([-pi,pi])
 hold on, plot([-pi,pi],[0,0],'--','Color',[0.3,0.3,0.3])

@@ -29,11 +29,17 @@
 
 *.brf
 
+
 .DS_Store
 .AppleDouble
 .LSOverride
 ._*
 
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
 
 .DocumentRevisions-V100
 .fseventsd
@@ -47,11 +53,17 @@ test.dSYM
 out.*.*.[oe]
 policies/*
 runs/
-archive/
-__pycache__/
+
+engine_cmaes
+
 pp
 terminals.dat
 _deprecated*
 
+
 *.swp
 *.raw
+*.mp4
+*.avi
+*.mat
+

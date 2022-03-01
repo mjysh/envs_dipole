@@ -1,0 +1,43 @@
+%%
+close all;
+clear;
+%%
+set(groot,'defaultLineLineWidth',1.5);
+set(groot,'defaultFigureColor','w');
+set(groot,'defaultTextFontsize',12);
+set(groot,'defaultAxesFontsize',12);
+set(groot,'defaultPolarAxesFontsize',12);
+set(groot,'defaultTextInterpreter','latex');
+set(groot,'defaultPolarAxesTickLabelInterpreter','latex');
+set(groot,'defaultAxesTickLabelInterpreter','latex');
+set(groot,'defaultAxesLineWidth',1);
+%%
+
+options = optimoptions("fmincon");
+fun = @objective;  
+
+%% 
+
+lb = [ones(5,1)*(-Inf) ones(5,1)*(-5) ones(5,1)*(-pi)];
+ub = -lb;  
+
+A = [];
+b = [];
+Aeq = zeros(2,15);
+Aeq(1,1) = 1;
+Aeq(2,6) = 1;
+beq = [0;0];  
+
+x0 = [zeros(5,2) ones(5,1)];
+
+
+nonlcon = @dynamiccon;
+
+
+%%
+function j = objective(x)
+j = x(end,1);
+end
+function [c,ceq] = dynamiccon(x)
+
+end

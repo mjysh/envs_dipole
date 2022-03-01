@@ -1,0 +1,5 @@
+policy tests for target at -9.0 2.25
+begin reading CFD data
+finished reading CFD data
+SETUP: State vector has 6 components, 6 of which are observed. Action vector has 1 continuous-valued components.
+Action vector components : [ 0 : bound to (-1.0:1.0) ]
