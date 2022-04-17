@@ -21,7 +21,7 @@ dir = ['./' policyType '/'];
 
 % policyType = 'lab';
 load([dir 'trajectory.mat']);
-time = time(1:end-1)';
+
 dx = observations(1:end-1,1);
 dy = observations(1:end-1,2);
 u = observations(1:end-1,3);
@@ -34,18 +34,10 @@ xangle = atan2(dy,dx);
 uangle = atan2(v,u);
 gradratio = dvdy./dudy;
 action_traj = actions;
-fig1 = figure('Position',[105 414 2420 465]);
-left_color = [0 0 0];
-right_color = [.5 .0 0];
-set(fig1,'defaultAxesColorOrder',[left_color; right_color]);
-yyaxis left
-plot(time,action_traj,'k'); hold on;
-yyaxis right
-colororder('default')
-plot(time,dx,'--', time,dy,'--', time,u,'--', time,v,'--');
-% plot(time,dx,'--', time,dy,'--', time,u,'--', time,v,'--', time,dudy,'--', time,dvdy,'--');
-legend({'action ($\dot\theta$)','$\Delta x_1$','$\Delta x_2$','$u$','$v$'},Interpreter="latex")
-% legend({'action ($\dot\theta$)','$\Delta x_1$','$\Delta x_2$','$u$','$v$','$\partial_2 u$','$\partial_2 v$'},Interpreter="latex")
+figure();
+plot(time,action_traj); hold on;
+
+
 %%
 v = VideoWriter([policyType '_trajWithPolicy.avi']);
 open(v);

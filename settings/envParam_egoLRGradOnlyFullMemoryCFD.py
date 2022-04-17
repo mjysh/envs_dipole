@@ -4,8 +4,7 @@ bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
 flowMode = 'CFD'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
-obsMode = 'labframeOneSensor'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorFB'
-resetMode = "InsideWake"
+obsMode = 'egoLRGradOnlyFullMemory'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'
 ##===============================================================================================##
 dt = 0.1
 mu = 0.8                                  # swimming speed
@@ -31,7 +30,7 @@ cut = 0.5
 # permitted range of area
 cfdDomainL = -23.5
 cfdDomainR = -0.5
-cfdDomainU = 6
-cfdDomainD = -6
-time_span = 4.5                 # maximum simulation time (one wake period)
+cfdDomainU = 5.5
+cfdDomainD = -5.5
+time_span = 4.5                 # maximum simulation time
 level_limit = 3                # max level of CFD grids, higher level means higher precision

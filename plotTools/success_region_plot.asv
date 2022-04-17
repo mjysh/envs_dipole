@@ -31,11 +31,11 @@ dir = './';
 %% success rate
 range = [0,2*pi];
 % for k = 1:12
-% ang_start = 3*k-3;
-% ang_end = 3*k-1;
-ang_start = 1;
-ang_end = 36;
-plot_successRate(n_angle, initX, initY, reward, target,ang_start,ang_end);
+ang_start = 3*k-3;
+ang_end = 3*k-1;
+ang_start = 3*k-3;
+ang_end = 3*k-1;
+plot_successRate(n_angle, initX, initY, reward, targetX, targetY,ang_start,ang_end);
 % pause(2);
 % end
 %% time consumption
@@ -51,10 +51,9 @@ name = 'lab4';
 plot_timeUsed(dir,n_angle,name, ang_start,ang_end)
 
 %%
-function plot_successRate(n_angle, initX, initY, reward, target,ang_start,ang_end)
-targetX = target(1);
-targetY = target(2);
+function plot_successRate(n_angle, initX, initY, reward, targetX, targetY,ang_start,ang_end)
 sr = zeros(1,length(initX)/n_angle);
+
 range = ang_end - ang_start + 1;
 for i = 1:n_angle:length(initY)
 %     success = reward(i:i+n_angle-1)>50;

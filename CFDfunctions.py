@@ -65,6 +65,7 @@ def adapt_time_interp(UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX,frame_rate,time = 0.634,po
     weightDown = (frameUp-frame)
     weightUp = (frame-frameDown)
     """velocity for frameDown"""
+    print('frame', frame, frameUp, frameDown)
     UDown,VDown,ODown = adapt_space_Interp(posX,posY,UUU[frameDown],VVV[frameDown],OOO[frameDown],
                                XMIN[frameDown],XMAX[frameDown],
                                YMIN[frameDown],YMAX[frameDown])
@@ -156,7 +157,8 @@ def adapt_space_Interp(posX,posY,UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX):
             break
     # indexX = np.searchsorted(xf,posX)
     # indexY = np.searchsorted(yf,posY)
-    # print(indexX,indexY)
+    print(indexX,indexY)
+    print(XMIN[i],XMAX[i],YMIN[i],YMAX[i],i, np.shape(UUU[i]))
     # print(posX,posY)
     # dx = xf[1]-xf[0]
     # dy = yf[1]-yf[0]
