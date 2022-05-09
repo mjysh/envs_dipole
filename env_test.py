@@ -18,7 +18,7 @@ def test():
     action_dim = env.action_space.shape[0]
     
     n_episodes = 1          # num of episodes to run
-    max_timesteps = 200    # max timesteps in one episode
+    max_timesteps = 1900    # max timesteps in one episode
     render = True           # render the environment
     save_gif = False        # png images are saved in gif folder
     
@@ -44,7 +44,7 @@ def test():
     for ep in range(1, n_episodes+1):
         ep_reward = 0
         env = wrappers.Monitor(env, './Movies/test',force = True)
-        state = env.reset(position = [-4.,-2.0,0.])
+        state = env.reset(position = [-15.0,0.5,0.0], target = [-9.0,0.0])
         state_his = state
         env.done = False
         for t in range(max_timesteps):

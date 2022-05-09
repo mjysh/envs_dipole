@@ -4,13 +4,13 @@ bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
 flowMode = 'CFD'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
-obsMode = 'labframeOneSensorPlusMagGrad'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorFB'
+obsMode = 'labframeOneSensor'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorFB'
 ##===============================================================================================##
 dt = 0.1
 mu = 0.8                                  # swimming speed
 flexibility = 0.5                         # amount of change allowed in vortex strength
 train_offset = 0.15                        # gap distance between training and testing areas
-cfdpath = '/home/yusheng/CFDadapt/'
+cfdpath = '/home/yusheng/cylinder_flow/Re=200/'
 
 ##===============================================================================================##
 """  for reduced-order wake """

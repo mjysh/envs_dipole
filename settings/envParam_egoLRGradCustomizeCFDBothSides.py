@@ -4,8 +4,8 @@ bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
 flowMode = 'CFD'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
-obsMode = 'egoLRGradTrick'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'
-resetMode = "SquareTwoSide"
+obsMode = 'egoTwoSensorLRGrad'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'
+resetMode = "Customize"
 ##===============================================================================================##
 dt = 0.1
 mu = 0.8                                  # swimming speed

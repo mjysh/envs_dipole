@@ -1,4 +1,5 @@
-function actionsAndValue = obs_to_act(obs, vracerNN)
+function [action,value] = obs_to_act(obs, vracerNN)
+obs = obs(:);
 activation = @tanh;
 
 obs = (obs-vracerNN.obs_mean).*vracerNN.obs_scale;
@@ -13,5 +14,7 @@ s_res = vracerNN.W_res.*i1 + vracerNN.B_res;
 i_res = s_res + i2;
 
 s3 = vracerNN.W3*i_res + vracerNN.B3;
-actionsAndValue = tanh(s3);
+out = tanh(s3);
+action = out(2);
+value = out(1);
 end

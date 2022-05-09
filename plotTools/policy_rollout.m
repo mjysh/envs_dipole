@@ -34,8 +34,6 @@ end
 [flowU, flowV, ~]= adapt_time_interp(CFD,time+t,z(1),z(2));
 activation = @tanh;
 
-end_to_end = @(o) obs_to_act(o, vracerNN);
-
 % load('/home/yusheng/navigation_envs/dipole_new/plotTools/bestpolicy_lab/trajectory12-12.mat','observations','actions','states','reward','target')
 % load('/home/yusheng/navigation_envs/dipole_new/plotTools/lab/trajectory.mat')
 % load('/home/yusheng/navigation_envs/dipole_new/plotTools/bestpolicy_egograd/trajectory12-12.mat')

@@ -25,8 +25,8 @@ end
 %%
 figure("Position", [960 1061 363 252]);
 % plot(targetX,targetY,'b*');
-p(1) = plot(reward,'.','MarkerSize',1);hold on
-p(2) = plot(movmean(reward,200),'r','LineWidth',1);
+p(1) = plot(reward,'.','MarkerSize',0.5);hold on
+p(2) = plot(movmean(reward,500),'r','LineWidth',1);
 % axis equal;
 % xlim([-24,0]);
 ylim([-10,210]);
