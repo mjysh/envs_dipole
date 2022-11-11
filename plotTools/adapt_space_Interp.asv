@@ -12,30 +12,30 @@ for i = 1:regionN
         indexX = ceil((posX-XMIN{i})/dx);
         indexY = ceil((posY-YMIN{i})/dy);
 
-        if indexX < 1
-            %                 extrapolation
-            rx = posX - XMIN{i};
-            indexX = 1;
-        elseif indexX > width(Uf) - 1
-            %                 extrapolation
-            rx = posX - XMAX{i} + dx;
-            indexX = width(Uf) - 1;
-        else
-            %                 interpolation
-            rx = mod((posX - XMIN{i}), dx);
-        end
-        if indexY < 1
-            %                 extrapolation
-            ry = posY - YMIN{i};
-            indexY = 1;
-        elseif indexY > height(Uf) - 1
-            %                 extrapolation
-            ry = posY - YMAX{i} + dy;
-            indexY = height(Uf) - 1;
-        else
-            %                 interpolation
-            ry = mod((posY - YMIN{i}), dy);
-        end
+        rx = mod((posX-XMIN{i}), dx);
+        ry = mod((posY-YMIN{i}), dy);
+        if indexX < 1:
+%                 extrapolation
+                rx = posX-XMIN[i]
+                indexX = 1
+            elif indexX > Uf.shape[1] - 1:
+%                 extrapolation
+                rx = posX-XMAX[i]+dx
+                indexX = Uf.shape[1] - 1
+            else:
+%                 interpolation
+                rx = (posX-XMIN[i]) % dx
+            if indexY < 1:
+%                 extrapolation
+                ry = posY-YMIN[i]
+                indexY = 1
+            elif indexY > Uf.shape[0] - 1:
+%                 extrapolation
+                ry = posY-YMAX[i]+dy
+                indexY = Uf.shape[0] - 1
+            else:
+%                 interpolation
+                ry = (posY-YMIN[i]) % dy
         break
     end
 end

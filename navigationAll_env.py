@@ -948,14 +948,14 @@ class DipoleSingleEnv(gym.Env):
                 # b = 487
                 # t = 53
                 # self.img.blit(-self.width/2/(r-l)*(l+r), -self.height/2/(b-t)*(self.img.height*2-b-t), width=self.width/(r-l)*self.img.width, height=self.height/(b-t)*self.img.height)
-                self.img.blit(-self.width/4*3, -self.height/2, width=self.width, height=self.height)
+                self.img.blit(-self.width/4*1, -self.height/2, width=self.width, height=self.height)
         
         x,y,theta = self.pos
         if (self.mode == 'CFD' or self.mode == 'CFDwRot'):
-            leftbound = -24
-            rightbound = 0
-            lowerbound = -8
-            upperbound = 8
+            leftbound = self.permittedL - 0.5
+            rightbound = self.permittedR + 0.5
+            lowerbound = self.permittedD - 0.5
+            upperbound = self.permittedU + 0.5
         elif (self.mode == 'reduced'):
             leftbound = -8
             rightbound = 8

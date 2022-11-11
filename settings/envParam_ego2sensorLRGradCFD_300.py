@@ -32,5 +32,5 @@ cfdDomainL = 0.5
 cfdDomainR = 23.5
 cfdDomainU = 6
 cfdDomainD = -6
-time_span = 14.935                 # maximum simulation time
+time_span = 4.63                 # maximum simulation time
 level_limit = 3                # max level of CFD grids, higher level means higher precision

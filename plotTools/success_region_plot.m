@@ -37,43 +37,43 @@ range = [0,2*pi];
 ang_start = 1;
 ang_end = 36;
 n_angle = 36;
-name = 'geo1_long';
+% name = 'geo1_long';
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
+% name = 'egograd1_long';
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
+name = 'geo7';
 plot_successRate(source,name, n_angle, ang_start, ang_end);
-name = 'egograd1_long';
+name = 'egograd7';
 plot_successRate(source,name, n_angle, ang_start, ang_end);
-name = 'geo1';
-plot_successRate(source,name, n_angle, ang_start, ang_end);
-% % name = 'egograd5';
-% % plot_successRate(source,name, n_angle, ang_start, ang_end);
-name = 'egograd1';
-plot_successRate(source,name, n_angle, ang_start, ang_end);
-% 
-name = 'far_egograd1_long';
-plot_successRate(source,name, n_angle, ang_start, ang_end);
-name = 'far_geo1_long';
-plot_successRate(source,name, n_angle, ang_start, ang_end);
-name = 'near_geo1';
-plot_successRate(source,name, n_angle, ang_start, ang_end);
-name = 'near_egograd1';
-plot_successRate(source,name, n_angle, ang_start, ang_end);
+% name = 'egograd1';
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
+% % 
+% name = 'far_egograd1_long';
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
+% name = 'far_geo1_long';
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
+% name = 'near_geo1';
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
+% name = 'near_egograd1';
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
 % pause(2);
 % end
 %% time consumption
 ang_start = 1;
 ang_end = 36;
 n_angle = 36;
-name = 'egograd1_long';
+name = 'egograd7';
 plot_timeUsed(source,n_angle, name, ang_start,ang_end)
-name = 'geo1_long';
+name = 'geo7';
 plot_timeUsed(source,n_angle,name, ang_start,ang_end)
-name = 'far_egograd1_long';
-plot_timeUsed(source,n_angle, name, ang_start,ang_end)
-name = 'far_geo1_long';
-plot_timeUsed(source,n_angle,name, ang_start,ang_end)
-name = 'near_egograd1';
-plot_timeUsed(source,n_angle, name, ang_start,ang_end)
-name = 'near_geo1';
-plot_timeUsed(source,n_angle,name, ang_start,ang_end)
+% name = 'far_egograd1_long';
+% plot_timeUsed(source,n_angle, name, ang_start,ang_end)
+% name = 'far_geo1_long';
+% plot_timeUsed(source,n_angle,name, ang_start,ang_end)
+% name = 'near_egograd1';
+% plot_timeUsed(source,n_angle, name, ang_start,ang_end)
+% name = 'near_geo1';
+% plot_timeUsed(source,n_angle,name, ang_start,ang_end)
 
 
 %%

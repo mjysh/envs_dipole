@@ -9,8 +9,8 @@ Naction = 1;
 N1 = 128;
 N2 = 128;
 NNsize = [N1, N2];
-policy_path_ego = '/home/yusheng/smarties/apps/dipole_adapt/paper/egoLRGrad5';
-policy_path_geo = '/home/yusheng/smarties/apps/dipole_adapt/paper/lab4';
+policy_path_ego = '/home/yusheng/smarties/apps/dipole_adapt/paper/egoLRGrad7';
+policy_path_geo = '/home/yusheng/smarties/apps/dipole_adapt/paper/geo6';
 %% load policy
 vracerNN_ego = loadvracerNN(policy_path_ego,Nobs_ego,N1,N2,Naction);
 policy_ego = @(o) obs_to_act(o, vracerNN_ego);
@@ -32,7 +32,8 @@ for i = 1:length(states)
     [action_geo(i),~] = policy_geo(obs_geo(i,:));
 end
 %%
-perAngleTest(policy_geo,@observation_geo,CFD,-21.97,-5.50,1,target)
+perAngleTest(policy_geo,@observation_geo,CFD,-11.97,0.50,1,target)
+perAngleTest(policy_ego,@observation_ego,CFD,-11.97,0.50,1,target)
 %%
 figure, plot(action_ego);
 hold on;
@@ -68,15 +69,17 @@ for N = 1:10:450
 end
 %% target direction in geocentric policy
 t_cfd = 0;
-% [X, Y, U, V] = getTargetDirection(CFD, target, policy_ego,@observation_ego, t_cfd);
-[X, Y, U, V] = getTargetDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
+[X, Y, U, V, U_tot, V_tot] = getTargetDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
+% [X, Y, U, V] = getTargetDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
 %%
 figure();
-[bg,map] = imread(['/home/yusheng/CFDadapt/Movie/movie' num2str(t_cfd*20,'%04.f') '.png'],"png");hold on;
+[bg,map] = imread(['/home/yusheng/CFDadapt/Movie_visit/movie' num2str(t_cfd*20,'%04.f') '.png'],"png");hold on;
 image([-24,8],[8,-8],ind2rgb(bg,map));
 quiver(X,Y,U,V,'AutoScaleFactor',0.5)
 axis equal;
-colorbar('Location','westoutside')
+hold on, quiver(X,Y,U_tot,V_tot,'AutoScaleFactor',0.5);
+scatter(X,Y,'.','MarkerEdgeColor',[0.5,0.5,0.5]);
+% colorbar('Location','westoutside')
 plot(target(1),target(2),'p',Color=[50/255,100/255,50/255]);
 xlim([-23.5,0]);
 ylim([-6,6]);
@@ -100,7 +103,7 @@ end
 
 end
 
-function [X, Y, U, V] = getTargetDirection(CFD, target, policy,state_to_obs, time)
+function [X, Y, U, V, U_tot, V_tot] = getTargetDirection(CFD, target, policy,state_to_obs, time)
 bound_left = -23.5;
 bound_right = -0.5;
 bound_up = 5.5;
@@ -108,6 +111,8 @@ bound_down = -5.5;
 [X,Y] = meshgrid(linspace(bound_left,bound_right,31), linspace(bound_down,bound_up,16));
 U = zeros(size(X));
 V = zeros(size(X));
+U_tot = zeros(size(X))*nan;
+V_tot = zeros(size(X))*nan;
 
 for m = 1:size(X,1)
     for n = 1:size(X,2)
@@ -139,8 +144,11 @@ for m = 1:size(X,1)
             fprintf('not found at %4.2f, %4.2f\n',x,y)
         elseif (length(roots) == 1)
             ang = mean(orts(roots:roots+1));
-            U(m,n) = cos(ang);
-            V(m,n) = sin(ang);
+            U(m,n) = cos(ang)*0.8;
+            V(m,n) = sin(ang)*0.8;
+            [flowU, flowV, ~]= adapt_time_interp(CFD,time,x,y);
+            U_tot(m,n) = U(m,n) + flowU;
+            V_tot(m,n) = V(m,n) + flowV;
         else
             fprintf('multiple values (%4.2f) at %4.2f, %4.2f\n',length(roots), x,y)
         end
