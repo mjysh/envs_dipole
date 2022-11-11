@@ -3,8 +3,8 @@ clear;
 %%
 figureDefaultSettings;
 %%
-traj_path = '/home/yusheng/navigation_envs/dipole_new/plotTools/bestpolicy_lab/trajectory12-12.mat';
-policy_path = './bestpolicy_lab';
+traj_path = '/home/yusheng/navigation_envs/dipole_new/tools/bestpolicy_geo/trajectory12-12.mat';
+policy_path = './bestpolicy_geo';
 load(traj_path);
 
 Nobs = 5;

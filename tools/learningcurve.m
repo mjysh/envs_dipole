@@ -12,7 +12,8 @@ set(groot,'defaultPolarAxesTickLabelInterpreter','latex');
 set(groot,'defaultAxesTickLabelInterpreter','latex');
 set(groot,'defaultAxesLineWidth',1);
 %%
-dir = './';
+% dir = './';
+dir = '/home/yusheng/smarties/apps/dipole_adapt/paper/geo7/';
 T = readlines([dir 'agent_00_rank_000_cumulative_rewards.dat']);
 
 reward = zeros(length(T)-1,1);

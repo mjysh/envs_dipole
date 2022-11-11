@@ -1,7 +1,7 @@
 import importlib
 import CFDfunctions as cf
 import numpy as np
-paramSource = 'envParam_ego2sensorLRGradCFD_300'
+paramSource = 'envParam_ego2sensorLRGradCFD_500'
 param = importlib.import_module('settings.'+paramSource)
 cfdpath = param.cfdpath
 

@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import CFDfunctions as cf
 
-boundL = -7.75
-boundR = 23.75
+boundL = -23.75
+boundR = 7.75
+
 boundU = 7.75
 boundD = -7.75
 plot_dpi = 240
@@ -31,12 +32,15 @@ UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX\
 = cf.adapt_load_data(time_span,source_path,level_limit)
 print('finished reading CFD data')
 #%%
-nx = int(np.round((boundR - boundL)/0.02)) + 1
-ny = int(np.round((boundU - boundD)/0.02)) + 1
+
+nx = int(np.round((boundR - boundL)/0.03125)) + 1
+ny = int(np.round((boundU - boundD)/0.03125)) + 1
 x = np.linspace(boundL, boundR, nx)
 y = np.linspace(boundD, boundU, ny)
 X, Y = np.meshgrid(x, y, indexing = 'ij')
 Omega = np.zeros_like(X)
+# U = np.zeros_like(X)
+# V = np.zeros_like(X)
 # cmap = cm.get_cmap('bwr',128)
 # index = 0
 for t in np.arange(0, time_span+0.05, 0.05):
@@ -46,21 +50,21 @@ for t in np.arange(0, time_span+0.05, 0.05):
         for j in range(X.shape[1]):
             # posx = (X[i,j] + X[i+1,j])/2
             # posy = (Y[i,j] + Y[i,j+1])/2
-            posx = X[i,j]
-            posy = Y[i,j]
+            posx = -X[i,j]
+            posy = -Y[i,j]
 
-            u,v,Omega[i,j] =  cf.adapt_time_interp(UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX,cfd_framerate,\
+            _,_,Omega[i,j] =  cf.adapt_time_interp(UUU,VVV,OOO,XMIN,XMAX,YMIN,YMAX,cfd_framerate,\
                                                time = t,posX = posx,posY = posy)
         # print(o)
     # plot the vorticity field
     fig, ax = plt.subplots(dpi = plot_dpi)
     fig.set_figwidth(8)
+    # ax.quiver(X,Y,-U,-V)
     ax.pcolormesh(X,Y,Omega,shading = 'gouraud',cmap = cm.get_cmap('bwr',300),vmin = -3, vmax = 3)
-    ax.set_xlim(left = -8, right = 24)
+    ax.set_xlim(left = -24, right = 8)
     ax.set_ylim(bottom = -8, top = 8)
     ax.set_aspect('equal')
     ax.axis('off')
-    # fig.savefig(f'/home/yusheng/cylinder_flow/Re=200/bg_images/movie{index:04d}.png',pad_inches=0, bbox_inches='tight')
     index = int(np.round(t/0.05))
     fig.savefig(f'/home/yusheng/cylinder_flow/Re=200/Movie/movie{index:04d}.png',pad_inches=0, bbox_inches='tight')
     plt.close(fig)

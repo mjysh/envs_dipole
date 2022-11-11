@@ -3,7 +3,7 @@ bl = 1               # length
 bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
-flowMode = 'CFD'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
+flowMode = 'CFD_flipped'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
 obsMode = 'egoTwoSensorLRGrad'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'
 ##===============================================================================================##
 dt = 0.1
@@ -28,8 +28,8 @@ cut = 0.5
 ##===============================================================================================##
 #  for CFD
 # permitted range of area
-cfdDomainL = 0.5
-cfdDomainR = 23.5
+cfdDomainL = -23.5
+cfdDomainR = -0.5
 cfdDomainU = 6
 cfdDomainD = -6
 time_span = 4.63                 # maximum simulation time

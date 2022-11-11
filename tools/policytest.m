@@ -12,7 +12,7 @@ set(groot,'defaultPolarAxesTickLabelInterpreter','latex');
 set(groot,'defaultAxesTickLabelInterpreter','latex');
 set(groot,'defaultAxesLineWidth',1);
 %%
-load('/home/yusheng/navigation_envs/dipole_new/plotTools/egoGradLR/trajectory12-12.mat')
+load('/home/yusheng/navigation_envs/dipole_new/tools/egoGradLR/trajectory12-12.mat')
 %% NN setup
 Nobs = 6;
 Naction = 1;

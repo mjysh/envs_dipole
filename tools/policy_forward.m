@@ -14,12 +14,12 @@ NNsize = [N1, N2];
 % obs_scale = SCALE(6:10);
 
 %%
-vracerNN = loadvracerNN('bestpolicy_lab',Nobs,N1,N2,Naction);
+vracerNN = loadvracerNN('bestpolicy_geo',Nobs,N1,N2,Naction);
 % vracerNN = loadvracerNN('bestpolicy_egograd',Nobs,N1,N2,Naction);
 % vracerNN = loadvracerNN('egoGradLR',Nobs,N1,N2,Naction);
 %%
 end_to_end = @(o) obs_to_act(o, vracerNN);
-load('/home/yusheng/navigation_envs/dipole_new/plotTools/bestpolicy_lab/trajectory12-12.mat','observations','actions','states','reward','target')
+load('/home/yusheng/navigation_envs/dipole_new/plotTools/bestpolicy_geo/trajectory12-12.mat','observations','actions','states','reward','target')
 % load('/home/yusheng/navigation_envs/dipole_new/plotTools/bestpolicy_egograd/trajectory12-12.mat')
 % load('/home/yusheng/navigation_envs/dipole_new/plotTools/egoGradLR/trajectory12-12.mat')
 figure,plot(states(:,1),states(:,2),'k');

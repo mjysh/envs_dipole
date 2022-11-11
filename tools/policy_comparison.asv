@@ -10,7 +10,7 @@ N1 = 128;
 N2 = 128;
 NNsize = [N1, N2];
 policy_path_ego = '/home/yusheng/smarties/apps/dipole_adapt/paper/egoLRGrad7';
-policy_path_geo = '/home/yusheng/smarties/apps/dipole_adapt/paper/geo6';
+policy_path_geo = '/home/yusheng/smarties/apps/dipole_adapt/paper/geo7';
 %% load policy
 vracerNN_ego = loadvracerNN(policy_path_ego,Nobs_ego,N1,N2,Naction);
 policy_ego = @(o) obs_to_act(o, vracerNN_ego);
@@ -103,7 +103,7 @@ end
 
 end
 
-function [X, Y, U, V, U_tot, V_tot] = getTargetDirection(CFD, target, policy,state_to_obs, time)
+function [X, Y, U, V, U_tot, V_tot,X_multi, Y_multi, U_multi,V_multi] = getTargetDirection(CFD, target, policy,state_to_obs, time)
 bound_left = -23.5;
 bound_right = -0.5;
 bound_up = 5.5;
@@ -113,7 +113,11 @@ U = zeros(size(X));
 V = zeros(size(X));
 U_tot = zeros(size(X))*nan;
 V_tot = zeros(size(X))*nan;
-
+U_multi = 0;
+V_multi = 0;
+X_multi = 0;
+Y_multi = 0;
+n_multi = 0;
 for m = 1:size(X,1)
     for n = 1:size(X,2)
         x = X(m,n);
@@ -151,7 +155,19 @@ for m = 1:size(X,1)
             V_tot(m,n) = V(m,n) + flowV;
         else
             fprintf('multiple values (%4.2f) at %4.2f, %4.2f\n',length(roots), x,y)
+            for k = 1:length(roots)
+                n_multi = n_multi + 1;
+                X_multi(n_multi) = x;
+                Y_multi(n_multi) = y;
+                ang = mean(orts(roots(k):roots(k)+1));
+                U_multi(n_multi) = cos(ang)*0.8;
+                V_multi(n_multi) = sin(ang)*0.8;
+            end
         end
     end
 end
+X_multi = X_multi(1:n_multi);
+Y_multi = Y_multi(1:n_multi);
+U_multi = U_multi(1:n_multi);
+V_multi = _multi(1:n_multi);
 end

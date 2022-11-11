@@ -40,13 +40,14 @@ class DipoleSingleEnv(gym.Env):
             'CFD': self.__flowVK_CFD,
             'reduced': self.__flowVK_reduced,
             'CFDwRot': self.__flowVK_CFDWR,
+            'CFD_flipped': self.__flowVK_CFD_flipped
             }
         obs_dict = {
             'labframeOneSensor': (self._get_obs_geo1, 5),
             # 'labframeOneSensorPlusMagGrad': (self._get_obs_lab1plusmaggrad, 6),
-            'labframeAll': (self._get_obs_lab_all, 6),
+            'geoPeriodic': (self._get_obs_geo_all, 6),
             'geoLRGradOnly': (self._get_obs_geolrgradonly, 5),
-            'geoNoFlow': (self._get_obs_geonoflow, 3),
+            'geoFlowBlind': (self._get_obs_geonoflow, 3),
             'egoOneSensor': (self._get_obs_ego1, 4),
             'egoOneSensorVor': (self._get_obs_ego1vor, 5),
             'egoLRGradTrick': (self._get_obs_ego2lrgradtrick, 7),
@@ -80,7 +81,7 @@ class DipoleSingleEnv(gym.Env):
             self.reset_mode = param.resetMode
         else:
             self.reset_mode = "default"
-        if (self.mode == 'CFD' or self.mode == 'CFDwRot'):
+        if ('CFD' in self.mode):
             self.permittedL = param.cfdDomainL
             self.permittedR = param.cfdDomainR
             self.permittedU = param.cfdDomainU
@@ -92,6 +93,8 @@ class DipoleSingleEnv(gym.Env):
             self.cfd_framerate,self.time_span,\
                 self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX\
                 = cf.adapt_load_data(time_span,source_path,level_limit)
+            # print('LOADING')
+            # print(time_span, source_path, level_limit)
             print('finished reading CFD data')
         elif (self.mode == 'reduced'):
             self.permittedL = param.reducedDomainL
@@ -171,6 +174,19 @@ class DipoleSingleEnv(gym.Env):
         """fixed or adaptive mesh"""
         uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,\
                                             self.cfd_framerate,time = t % self.time_span,posX = x,posY = y)
+
+        oVK = 0
+        return uVK,vVK,oVK
+    def __flowVK_CFD_flipped(self, pos, t):
+        x = -pos[0]
+        y = -pos[1]
+        
+        """fixed or adaptive mesh"""
+        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,\
+                                            self.cfd_framerate,time = t % self.time_span,posX = x,posY = y)
+
+        uVK = -uVK
+        vVK = -vVK
         oVK = 0
         return uVK,vVK,oVK
     def __flowVK_CFDWR(self, pos, t):
@@ -322,6 +338,7 @@ class DipoleSingleEnv(gym.Env):
 
         self.oldrelx = dx*np.cos(ort) + dy*np.sin(ort)
         self.oldrely = -dx*np.sin(ort) + dy*np.cos(ort)
+
         return self.obs()
     """A series of observations to choose from"""
     def _get_obs_geo1(self):
@@ -333,35 +350,35 @@ class DipoleSingleEnv(gym.Env):
         dx = self.target[0] - self.pos[0]
         dy = self.target[1] - self.pos[1]
         return np.array([dx,dy,ort,uVK,vVK])
-    def _get_obs_geolrgradonly(self):
-        """
-        egocentric swimmer position and local flow field and lateral gradient
-        """
-        ort = angle_normalize(self.pos[-1])
-        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
-        posRight = np.array(self.pos[0:2])*2 - posLeft
-        uVKL,vVKL,_ = self.flow(posLeft,self.time)
-        uVKR,vVKR,_ = self.flow(posRight,self.time)
+    # def _get_obs_geolrgradonly(self):
+    #     """
+    #     egocentric swimmer position and local flow field and lateral gradient
+    #     """
+    #     ort = angle_normalize(self.pos[-1])
+    #     posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
+    #     posRight = np.array(self.pos[0:2])*2 - posLeft
+    #     uVKL,vVKL,_ = self.flow(posLeft,self.time)
+    #     uVKR,vVKR,_ = self.flow(posRight,self.time)
         
-        dx = self.target[0] - self.pos[0]
-        dy = self.target[1] - self.pos[1]
+    #     dx = self.target[0] - self.pos[0]
+    #     dy = self.target[1] - self.pos[1]
 
-        relx = dx*np.cos(ort) + dy*np.sin(ort)
-        rely = -dx*np.sin(ort) + dy*np.cos(ort)
-        reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
-        relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
-        reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
-        relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
-        return np.array([relx, rely, ort, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
-    def _get_obs_lab_all(self):
-        """
-        swimmer position, orientation and local flow field in lab frame
-        """
-        uVK,vVK,oVK = self.flow(self.pos[0:2], self.time)
-        ort = angle_normalize(self.pos[-1])
-        dx = self.target[0] - self.pos[0]
-        dy = self.target[1] - self.pos[1]
-        return np.array([dx,dy,np.cos(ort), np.sin(ort),uVK,vVK])
+    #     relx = dx*np.cos(ort) + dy*np.sin(ort)
+    #     rely = -dx*np.sin(ort) + dy*np.cos(ort)
+    #     reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
+    #     relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
+    #     reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
+    #     relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+    #     return np.array([relx, rely, ort, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
+    # def _get_obs_geo_all(self):
+    #     """
+    #     swimmer position, orientation and local flow field in lab frame
+    #     """
+    #     uVK,vVK,oVK = self.flow(self.pos[0:2], self.time)
+    #     ort = angle_normalize(self.pos[-1])
+    #     dx = self.target[0] - self.pos[0]
+    #     dy = self.target[1] - self.pos[1]
+    #     return np.array([dx,dy,np.cos(ort), np.sin(ort),uVK,vVK])
 
     def _get_obs_ego1dir(self):
         """
@@ -456,7 +473,8 @@ class DipoleSingleEnv(gym.Env):
         """
         egocentric swimmer angular position and local flow fields from 2 sensors located on the left and right of the swimmer
         """
-        ort = angle_normalize(self.pos[-1])
+        ort = self.pos[-1]
+        # ort = angle_normalize(self.pos[-1])
         # posLeft = self.pos[0:2] + np.array([-self.bw/2*np.sin(self.pos[-1]),self.bw/2*np.cos(self.pos[-1])])
         posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
         posRight = np.array(self.pos[0:2])*2 - posLeft
@@ -492,27 +510,28 @@ class DipoleSingleEnv(gym.Env):
         relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
         reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
         relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
-        return np.array([relx, rely, (reluL + reluR)/2, (relvL + relvR)/2, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
-    def _get_obs_ego2lrgraddir(self):
-        """
-        egocentric swimmer position and local flow field and lateral gradient
-        """
-        ort = angle_normalize(self.pos[-1])
-        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
-        posRight = np.array(self.pos[0:2])*2 - posLeft
-        uVKL,vVKL,_ = self.flow(posLeft,self.time)
-        uVKR,vVKR,_ = self.flow(posRight,self.time)
         
-        dx = self.target[0] - self.pos[0]
-        dy = self.target[1] - self.pos[1]
+        return np.array([relx, rely, (reluL + reluR)/2, (relvL + relvR)/2, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
+    # def _get_obs_ego2lrgraddir(self):
+    #     """
+    #     egocentric swimmer position and local flow field and lateral gradient
+    #     """
+    #     ort = angle_normalize(self.pos[-1])
+    #     posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
+    #     posRight = np.array(self.pos[0:2])*2 - posLeft
+    #     uVKL,vVKL,_ = self.flow(posLeft,self.time)
+    #     uVKR,vVKR,_ = self.flow(posRight,self.time)
+        
+    #     dx = self.target[0] - self.pos[0]
+    #     dy = self.target[1] - self.pos[1]
 
-        relx = dx*np.cos(ort) + dy*np.sin(ort)
-        rely = -dx*np.sin(ort) + dy*np.cos(ort)
-        reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
-        relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
-        reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
-        relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
-        return np.array([relx, rely, ort, (reluL + reluR)/2, (relvL + relvR)/2, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
+    #     relx = dx*np.cos(ort) + dy*np.sin(ort)
+    #     rely = -dx*np.sin(ort) + dy*np.cos(ort)
+    #     reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
+    #     relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
+    #     reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
+    #     relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+    #     return np.array([relx, rely, ort, (reluL + reluR)/2, (relvL + relvR)/2, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
     def _get_obs_ego2lrmaggrads(self):
         """
         egocentric swimmer position and local flow field and lateral gradient
@@ -951,16 +970,17 @@ class DipoleSingleEnv(gym.Env):
                 self.img.blit(-self.width/4*1, -self.height/2, width=self.width, height=self.height)
         
         x,y,theta = self.pos
-        if (self.mode == 'CFD' or self.mode == 'CFDwRot'):
-            leftbound = self.permittedL - 0.5
-            rightbound = self.permittedR + 0.5
-            lowerbound = self.permittedD - 0.5
-            upperbound = self.permittedU + 0.5
-        elif (self.mode == 'reduced'):
+        
+        if (self.mode == 'reduced'):
             leftbound = -8
             rightbound = 8
             lowerbound = -6
             upperbound = 6
+        else:
+            leftbound = self.permittedL - 0.5
+            rightbound = self.permittedR + 0.5
+            lowerbound = self.permittedD - 0.5
+            upperbound = self.permittedU + 0.5
         if self.viewer is None:
             scale = 50
             self.viewer = rendering.Viewer((rightbound-leftbound)*scale,(upperbound-lowerbound)*scale)
@@ -1026,7 +1046,7 @@ class DipoleSingleEnv(gym.Env):
         # Ynose = y + np.sin(theta)*self.bl/2
         # self.viewer.draw_line((Xnose, Ynose), (self.target[0], self.target[1]))
         
-        """fish shape"""
+        """swimmer shape"""
         for i in range(1):
             fish = draw_ellipse(self.viewer,major=self.bl/2, minor=self.bw/2, res=30, filled=False)
             fsTrans = rendering.Transform(rotation=theta,translation=(x,y))

@@ -4,7 +4,8 @@ clear;
 figureDefaultSettings;
 %%
 n_angle = 36;
-source = './';
+% source = './';
+source = '/home/yusheng/smarties/apps/dipole_adapt/paper/';
 %%
 
 %% Old txt format
@@ -41,10 +42,12 @@ n_angle = 36;
 % plot_successRate(source,name, n_angle, ang_start, ang_end);
 % name = 'egograd1_long';
 % plot_successRate(source,name, n_angle, ang_start, ang_end);
-name = 'geo7';
-plot_successRate(source,name, n_angle, ang_start, ang_end);
-name = 'egograd7';
-plot_successRate(source,name, n_angle, ang_start, ang_end);
+% name = 'geo_test7/success_region_far/';
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
+name = 'egoGrad_test7/success_region_near/';
+policy_name = 
+% plot_successRate(source,name, n_angle, ang_start, ang_end);
+plot_timeUsed(source,n_angle, name, ang_start,ang_end);
 % name = 'egograd1';
 % plot_successRate(source,name, n_angle, ang_start, ang_end);
 % % 
@@ -165,8 +168,8 @@ the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
 end
 %%
-function plot_successRate(souce, name, n_angle,ang_start,ang_end)
-load([souce 'success_region_' name '.mat'])
+function plot_successRate(source, name, n_angle,ang_start,ang_end)
+load([source name 'success_region.mat'])
 targetX = target(1);
 targetY = target(2);
 sr = zeros(1,length(initX)/n_angle);
@@ -210,11 +213,11 @@ ylim([-6,6]);
 axis off
 the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
-exportgraphics(gcf,['./savedFigs/' name '_successrate.eps'])
+exportgraphics(gcf,['./savedFigs/' name 'successrate.eps'])
 end
 %%
 function plot_timeUsed(source,n_angle,name, ang_start,ang_end)
-load([source 'success_region_' name '.mat'])
+load([source name 'success_region.mat'])
 targetX = target(1); targetY = target(2);
 success = reward > 50;
 totTime(~success) = max(totTime);
