@@ -14,9 +14,9 @@ set(groot,'defaultAxesLineWidth',1);
 %%
 CFD = load('CFDData.mat');
 %%
-time = 1;
-x = linspace(-20,5,251);
-y = linspace(-5,5,101);
+time = 0;
+x = linspace(-20,7.5,251);
+y = linspace(-7.5,7.5,101);
 [X,Y] = meshgrid(x,y);
 flowU_reconstructed = zeros(size(X));
 flowV_reconstructed = zeros(size(X));
@@ -31,5 +31,14 @@ for ix = 1:length(x)
         flowV_reconstructed(iy,ix) = V_interp;
     end
 end
+
 %%
-plo
+[gx,gy] = gradient(flowU_reconstructed,x(2)-x(1))
+%%
+figure;
+cav = curl(flowU_reconstructed,flowV_reconstructed);
+pcolor(X,Y,cav);shading interp
+hold on, quiver(X(1:5:end,1:5:end),Y(1:5:end,1:5:end),flowU_reconstructed(1:5:end,1:5:end),flowV_reconstructed(1:5:end,1:5:end));
+axis equal
+contour(X,Y,flowU_reconstructed,[-1,-0.8,-0.6,0]);
+colorbar;

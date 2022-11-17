@@ -4,11 +4,11 @@ bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
 flowMode = 'CFD'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
-obsMode = 'egoTwoSensorLRGrad'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'
+obsMode = 'egoFourSensorGrad'      # choice of observations, 'geoOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'...
 ##===============================================================================================##
 dt = 0.1
 mu = 0.8                                  # swimming speed
-flexibility = 0.4                         # amount of change allowed in vortex strength
+flexibility = 0.5                         # amount of change allowed in vortex strength
 train_offset = 0.15                        # gap distance between training and testing areas
 cfdpath = '/home/yusheng/CFDadapt/'
 
@@ -32,5 +32,5 @@ cfdDomainL = -23.5
 cfdDomainR = -0.5
 cfdDomainU = 6
 cfdDomainD = -6
-time_span = 4.5                 # maximum simulation time
+time_span = 4.5                 # maximum simulation time (one wake period)
 level_limit = 3                # max level of CFD grids, higher level means higher precision
