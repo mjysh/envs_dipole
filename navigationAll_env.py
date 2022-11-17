@@ -154,6 +154,7 @@ class DipoleSingleEnv(gym.Env):
         observation = self.obs()
         return observation, reward, terminal, {}
     def _get_reward_default(self):
+        terminal = False
         # terminal = self.__terminal()          # termination condition
         # compute the fish nose position
         disToTarget_old = np.sqrt((self.oldpos[0]-self.target[0])**2+(self.oldpos[1]-self.target[1])**2)
@@ -163,6 +164,18 @@ class DipoleSingleEnv(gym.Env):
         reward = 0
         reward += -dDisToTarget
         if disToTarget_new<0.15:
+            reward += 200
+            terminal = True
+        if self.pos[0]>self.permittedR or self.pos[0]<self.permittedL or self.pos[1]<self.permittedD or self.pos[1]>self.permittedU:
+            terminal = True
+        return reward, terminal
+    def _get_reward_sourceseeking(self):
+        terminal = False
+        # terminal = self.__terminal()          # termination condition
+        # compute the fish nose position
+        reward = 0
+        reward += self.pos[0]-self.oldpos[0]
+        if self.pos[0] > -1.5:
             reward += 200
             terminal = True
         if self.pos[0]>self.permittedR or self.pos[0]<self.permittedL or self.pos[1]<self.permittedD or self.pos[1]>self.permittedU:
