@@ -58,7 +58,10 @@ class DipoleSingleEnv(gym.Env):
             'egoFourSensorGradOnly': (self._get_obs_ego4gradonly, 6),
             'egoFourSensorGrad': (self._get_obs_ego4grad, 6),
             'egoCustomize': (self._get_obs_egocustomize, 6),
-            'egoLRGradNoVision': (self._get_obs_egolrgradnovision, 4)
+            'egoLRGradNoVision': (self._get_obs_egolrgradnovision, 4),
+            'egoFourGradNoVision': (self._get_obs_ego4gradnovision, 6),
+            'egoFourGradOnlyNoVision': (self._get_obs_ego4gradonlynovision, 4),
+            'egoFourGradMagNoVision': (self._get_obs_ego4gradmagnovision, 5)
             # 'egoLRGradTrick': (self._get_obs_ego2lrgradtrick, 7),
             # 'geoPeriodic': (self._get_obs_geo_all, 6),
             # 'geoLRGradOnly': (self._get_obs_geolrgradonly, 5),
@@ -175,7 +178,7 @@ class DipoleSingleEnv(gym.Env):
         # compute the fish nose position
         reward = 0
         reward += self.pos[0]-self.oldpos[0]
-        if self.pos[0] > -1.5:
+        if self.pos[0] > -2:
             reward += 200
             terminal = True
         if self.pos[0]>self.permittedR or self.pos[0]<self.permittedL or self.pos[1]<self.permittedD or self.pos[1]>self.permittedU:
@@ -337,12 +340,20 @@ class DipoleSingleEnv(gym.Env):
             # target_centerY = 0
             # self.set_target(target_centerX + (np.random.rand()-0.5)*4, target_centerY + (np.random.rand()-0.5)*6)
         elif self.reset_mode == "Everywhere":            
-            swimmer_centerX = (self.permittedR + self.permittedL)/2
+            swimmer_centerX = (self.permittedR + self.permittedL)/2 + 2
             swimmer_centerY = 0
             self.pos = [swimmer_centerX + (np.random.rand()-0.5)*4, swimmer_centerY + (np.random.rand()-0.5)*6, np.random.rand()*2*np.pi]
 
             target_centerX = (self.permittedR + self.permittedL)/2
 
+            target_centerY = 0
+            self.set_target(target_centerX + (np.random.rand()-0.5)*4, target_centerY + (np.random.rand()-0.5)*6)
+        elif self.reset_mode == "Sourceseeking":            
+            swimmer_centerX = (self.permittedR + self.permittedL)/2 + 8
+            swimmer_centerY = 0
+            self.pos = [swimmer_centerX + (np.random.rand()-0.5)*4, swimmer_centerY + (np.random.rand()-0.5)*6, np.random.rand()*2*np.pi]
+
+            target_centerX = 0
             target_centerY = 0
             self.set_target(target_centerX + (np.random.rand()-0.5)*4, target_centerY + (np.random.rand()-0.5)*6)
         """When init position/ target position is specifically given"""
@@ -548,6 +559,85 @@ class DipoleSingleEnv(gym.Env):
         relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
         
         return np.array([(reluL + reluR)/2, (relvL + relvR)/2, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
+    def _get_obs_ego4gradnovision(self):
+        """
+        egocentric swimmer position and local flow field and lateral gradient
+        """
+        ort = angle_normalize(self.pos[-1])
+        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
+        posRight = np.array(self.pos[0:2])*2 - posLeft
+        posFront = self.pos[0:2] + np.array([0.05*np.cos(ort), 0.05*np.sin(ort)])
+        posBack = np.array(self.pos[0:2])*2 - posFront
+
+        uVKL,vVKL,_ = self.flow(posLeft,self.time)
+        uVKR,vVKR,_ = self.flow(posRight,self.time)
+        uVKF,vVKF,_ = self.flow(posFront,self.time)
+        uVKB,vVKB,_ = self.flow(posBack,self.time)
+
+        reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
+        relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
+        reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
+        relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+
+        reluF = uVKF*np.cos(ort) + vVKF*np.sin(ort)
+        relvF = -uVKF*np.sin(ort) + vVKF*np.cos(ort)
+        reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
+        relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
+
+        return np.array([(reluB+reluF+reluL+reluR)/4, (relvB+relvF+relvL+relvR)/4, (reluL - reluR)/0.1, (relvL - relvR)/0.1, (reluF - reluB)/0.1, (relvF - relvB)/0.1])
+    def _get_obs_ego4gradonlynovision(self):
+        """
+        egocentric swimmer position and local flow field and lateral gradient
+        """
+        ort = angle_normalize(self.pos[-1])
+        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
+        posRight = np.array(self.pos[0:2])*2 - posLeft
+        posFront = self.pos[0:2] + np.array([0.05*np.cos(ort), 0.05*np.sin(ort)])
+        posBack = np.array(self.pos[0:2])*2 - posFront
+
+        uVKL,vVKL,_ = self.flow(posLeft,self.time)
+        uVKR,vVKR,_ = self.flow(posRight,self.time)
+        uVKF,vVKF,_ = self.flow(posFront,self.time)
+        uVKB,vVKB,_ = self.flow(posBack,self.time)
+
+        reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
+        relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
+        reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
+        relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+
+        reluF = uVKF*np.cos(ort) + vVKF*np.sin(ort)
+        relvF = -uVKF*np.sin(ort) + vVKF*np.cos(ort)
+        reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
+        relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
+
+        return np.array([(reluL - reluR)/0.1, (relvL - relvR)/0.1, (reluF - reluB)/0.1, (relvF - relvB)/0.1])
+    def _get_obs_ego4gradmagnovision(self):
+        """
+        egocentric swimmer position and local flow field and lateral gradient
+        """
+        ort = angle_normalize(self.pos[-1])
+        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
+        posRight = np.array(self.pos[0:2])*2 - posLeft
+        posFront = self.pos[0:2] + np.array([0.05*np.cos(ort), 0.05*np.sin(ort)])
+        posBack = np.array(self.pos[0:2])*2 - posFront
+
+        uVKL,vVKL,_ = self.flow(posLeft,self.time)
+        uVKR,vVKR,_ = self.flow(posRight,self.time)
+        uVKF,vVKF,_ = self.flow(posFront,self.time)
+        uVKB,vVKB,_ = self.flow(posBack,self.time)
+
+        reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
+        relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
+        reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
+        relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+
+        reluF = uVKF*np.cos(ort) + vVKF*np.sin(ort)
+        relvF = -uVKF*np.sin(ort) + vVKF*np.cos(ort)
+        reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
+        relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
+        magLRdiff = np.sqrt(uVKL**2+vVKL**2) - np.sqrt(uVKR**2+vVKR**2)
+
+        return np.array([magLRdiff ,(reluL - reluR)/0.1, (relvL - relvR)/0.1, (reluF - reluB)/0.1, (relvF - relvB)/0.1])
     # def _get_obs_ego2lrgraddir(self):
     #     """
     #     egocentric swimmer position and local flow field and lateral gradient
@@ -1036,20 +1126,23 @@ class DipoleSingleEnv(gym.Env):
                 # b = 487
                 # t = 53
                 # self.img.blit(-self.width/2/(r-l)*(l+r), -self.height/2/(b-t)*(self.img.height*2-b-t), width=self.width/(r-l)*self.img.width, height=self.height/(b-t)*self.img.height)
-                self.img.blit(-self.width/4*1, -self.height/2, width=self.width, height=self.height)
+                self.img.blit(-self.width/4*3, -self.height/2, width=self.width, height=self.height)
         
         x,y,theta = self.pos
-        
+        """
+        set the movie frame bounds, note that the numbers must be integers!!!
+        """
         if (self.mode == 'reduced'):
             leftbound = -8
             rightbound = 8
             lowerbound = -6
             upperbound = 6
         else:
-            leftbound = self.permittedL - 0.5
-            rightbound = self.permittedR + 0.5
-            lowerbound = self.permittedD - 0.5
-            upperbound = self.permittedU + 0.5
+            leftbound = -24
+            rightbound = 8
+            lowerbound = -8
+            upperbound = 8
+        # print(leftbound,rightbound,upperbound,lowerbound)
         if self.viewer is None:
             scale = 50
             self.viewer = rendering.Viewer((rightbound-leftbound)*scale,(upperbound-lowerbound)*scale)
@@ -1088,17 +1181,18 @@ class DipoleSingleEnv(gym.Env):
 #        self.viewer.draw_line((0,-1000.), (0,1000.))
         
         """target"""
-        l = 0.06
-        d1 = l*(np.tan(0.3*np.pi)+np.tan(0.4*np.pi))
-        d2 = l/np.cos(0.3*np.pi)
-        target = self.viewer.draw_polygon(v = [(d2*np.cos(np.pi*0.7),d2*np.sin(np.pi*0.7)),(d1*np.cos(np.pi*0.9),d1*np.sin(np.pi*0.9)),
-                                               (d2*np.cos(np.pi*1.1),d2*np.sin(np.pi*1.1)),(d1*np.cos(np.pi*1.3),d1*np.sin(np.pi*1.3)),
-                                               (d2*np.cos(np.pi*1.5),d2*np.sin(np.pi*1.5)),(d1*np.cos(np.pi*1.7),d1*np.sin(np.pi*1.7)),
-                                               (d2*np.cos(np.pi*1.9),d2*np.sin(np.pi*1.9)),(d1*np.cos(np.pi*0.1),d1*np.sin(np.pi*0.1)),
-                                               (d2*np.cos(np.pi*0.3),d2*np.sin(np.pi*0.3)),(d1*np.cos(np.pi*0.5),d1*np.sin(np.pi*0.5))])
-        tgTrans = rendering.Transform(translation=(self.target[0], self.target[1]))
-        target.add_attr(tgTrans)
-        target.set_color(.0,.5,.2)
+        if self.reward_mode == 'default':
+            l = 0.06
+            d1 = l*(np.tan(0.3*np.pi)+np.tan(0.4*np.pi))
+            d2 = l/np.cos(0.3*np.pi)
+            target = self.viewer.draw_polygon(v = [(d2*np.cos(np.pi*0.7),d2*np.sin(np.pi*0.7)),(d1*np.cos(np.pi*0.9),d1*np.sin(np.pi*0.9)),
+                                                (d2*np.cos(np.pi*1.1),d2*np.sin(np.pi*1.1)),(d1*np.cos(np.pi*1.3),d1*np.sin(np.pi*1.3)),
+                                                (d2*np.cos(np.pi*1.5),d2*np.sin(np.pi*1.5)),(d1*np.cos(np.pi*1.7),d1*np.sin(np.pi*1.7)),
+                                                (d2*np.cos(np.pi*1.9),d2*np.sin(np.pi*1.9)),(d1*np.cos(np.pi*0.1),d1*np.sin(np.pi*0.1)),
+                                                (d2*np.cos(np.pi*0.3),d2*np.sin(np.pi*0.3)),(d1*np.cos(np.pi*0.5),d1*np.sin(np.pi*0.5))])
+            tgTrans = rendering.Transform(translation=(self.target[0], self.target[1]))
+            target.add_attr(tgTrans)
+            target.set_color(.0,.5,.2)
         """trail"""
         self.trail.append([x,y])
         for i in range(len(self.trail)-1): 
@@ -1130,15 +1224,15 @@ class DipoleSingleEnv(gym.Env):
             eye.set_color(.6,.3,.4)
         
         # from pyglet.window import mouse
-        # @self.viewer.window.event
-#        def on_mouse_press(x, y, buttons, modifiers):
-        # def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
-        #     leftbound = -self.viewer.transform.translation[0]/self.viewer.transform.scale[0]
-        #     rightbound = (self.viewer.width-self.viewer.transform.translation[0])/self.viewer.transform.scale[0]
-        #     lowerbound = -self.viewer.transform.translation[1]/self.viewer.transform.scale[1]
-        #     upperbound = (self.viewer.height-self.viewer.transform.translation[1])/self.viewer.transform.scale[1]
-        #     self.set_target((x)/self.viewer.width*(rightbound-leftbound) + leftbound,(y)/self.viewer.height*(upperbound-lowerbound) + lowerbound)
-        # return self.viewer.render(return_rgb_array = mode=='rgb_array')
+        @self.viewer.window.event
+    #    def on_mouse_press(x, y, buttons, modifiers):
+        def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
+            leftbound = -self.viewer.transform.translation[0]/self.viewer.transform.scale[0]
+            rightbound = (self.viewer.width-self.viewer.transform.translation[0])/self.viewer.transform.scale[0]
+            lowerbound = -self.viewer.transform.translation[1]/self.viewer.transform.scale[1]
+            upperbound = (self.viewer.height-self.viewer.transform.translation[1])/self.viewer.transform.scale[1]
+            self.set_target((x)/self.viewer.width*(rightbound-leftbound) + leftbound,(y)/self.viewer.height*(upperbound-lowerbound) + lowerbound)
+        return self.viewer.render(return_rgb_array = mode=='rgb_array')
     
     def close(self):
         if self.viewer:

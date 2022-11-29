@@ -13,7 +13,7 @@ def test():
     targetpos = np.array([0.,3.])
     env_name = "singleDipole-v0"
     # env = fish.DipoleSingleEnv(paramSource = 'envParam_default')
-    env = fish.DipoleSingleEnv(paramSource = 'envParam_ego2sensorLRDirCFD')
+    env = fish.DipoleSingleEnv(paramSource = 'envParam_ego2sensorLRGradCFD')
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     

@@ -19,6 +19,7 @@ vracerNN = loadvracerNN('bestpolicy_geo',Nobs,N1,N2,Naction);
 % vracerNN = loadvracerNN('egoGradLR',Nobs,N1,N2,Naction);
 %%
 end_to_end = @(o) obs_to_act(o, vracerNN);
+
 load('/home/yusheng/navigation_envs/dipole_new/plotTools/bestpolicy_geo/trajectory12-12.mat','observations','actions','states','reward','target')
 % load('/home/yusheng/navigation_envs/dipole_new/plotTools/bestpolicy_egograd/trajectory12-12.mat')
 % load('/home/yusheng/navigation_envs/dipole_new/plotTools/egoGradLR/trajectory12-12.mat')

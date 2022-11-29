@@ -6,9 +6,10 @@ Created on Tue Apr 12 12:49:13 2022
 @author: yusheng
 """
 import numpy as np
-N = 200
+N = 1000
 x = np.random.rand(N,3)
 y = np.random.rand(N,2)
+t = np.random.rand(N)
 
 positions = np.zeros_like(x)
 swimmer_centerX, swimmer_centerY = -12, -2.15
@@ -32,3 +33,9 @@ for a,b in y:
     targets[j,0] = target_centerX + np.cos(the)*r
     targets[j,1] = target_centerY + np.sin(the)*r
     j += 1
+init_time = np.zeros_like(t)
+for j,tp in enumerate(t):
+    init_time[j] = tp*4.5
+np.save('swimmer_initpositions',positions)
+np.save('target_positions',targets)
+np.save('init_time',init_time)

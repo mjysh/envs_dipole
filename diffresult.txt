@@ -1,0 +1,25 @@
+52,53c52,57
+<         
+<         if (self.mode == 'reduced'):
+---
+>         if (self.mode == 'CFD' or self.mode == 'CFDwRot'):
+>             leftbound = -24
+>             rightbound = 0
+>             lowerbound = -8
+>             upperbound = 8
+>         elif (self.mode == 'reduced'):
+58,63d61
+<         else:
+<             leftbound = self.permittedL - 0.5
+<             rightbound = self.permittedR + 0.5
+<             lowerbound = self.permittedD - 2
+<             upperbound = self.permittedU + 2
+<         print(leftbound,rightbound,upperbound,lowerbound)
+129c127
+<         """swimmer shape"""
+---
+>         """fish shape"""
+145c143
+<     #    def on_mouse_press(x, y, buttons, modifiers):
+---
+> #        def on_mouse_press(x, y, buttons, modifiers):
