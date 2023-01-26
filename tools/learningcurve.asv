@@ -1,0 +1,78 @@
+%%
+close all;
+clear;
+%%
+set(groot,'defaultLineLineWidth',1.5);
+set(groot,'defaultFigureColor','w');
+set(groot,'defaultTextFontsize',12);
+set(groot,'defaultAxesFontsize',12);
+set(groot,'defaultPolarAxesFontsize',12);
+set(groot,'defaultTextInterpreter','latex');
+set(groot,'defaultPolarAxesTickLabelInterpreter','latex');
+set(groot,'defaultAxesTickLabelInterpreter','latex');
+set(groot,'defaultAxesLineWidth',1);
+%%
+% dir = './';
+train_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/geo';
+n_best = 1;
+max_timestep = 1e7;
+t_q = linspace(0,max_timestep,101);
+%%
+start_index = 1;
+end_index = 1;
+average_window = 500;
+reward = read_learning_log(train_dir, start_index, end_index,t_q,average_window);
+%% all curves
+% figure("Position", [960 1061 363 252]);
+plot(t_q,reward,'-','color',[0.2,0.3,0.7],'LineWidth',0.25); hold on;
+plot(t_q,reward(:,n_best)','-','color',[0.7,0.3,0.2],'LineWidth',1);
+
+ylim([-10,210]);
+ylabel('reward');
+xlabel('time steps');
+%% range
+figure("Position", [960 1061 363 252]);
+x_axis = t_q;lColor = [0.2 0.6 0.7];aColor = [0.5 0.75 0.85];lWidth = 1.5;
+[patch_s1,l_s1] = plot_shadederrorbar(reward,x_axis,lColor,aColor,lWidth);
+
+ylim([-10,210]);
+ylabel('reward');
+xlabel('time steps');
+%% single
+figure("Position", [960 1061 363 252]);
+[reward_raw,time_step] = read_one_instance([train_dir num2str(n_best)]);
+plot(time_step,reward_raw,'.','MarkerSize',0.1,'color',[0.5 0.75 0.85],'LineWidth',0.5);hold on
+plot(time_step,movmean(reward_raw,100),'-','color',[0.2,0.3,0.7],'LineWidth',0.5);
+ylim([-10,210]);
+ylabel('reward');
+xlabel('time steps');
+%%
+function [reward,reward_raw,time_step] = read_learning_log(train_dir, n_start, n_end,t_q,average_window)
+reward = zeros(length(t_q),n_end-n_start+1);
+for k = n_start:n_end
+    [reward_raw,time_step] = read_one_instance([train_dir num2str(k)]);
+    firstnonzero = find(time_step,1);
+    lastnonzero = find(time_step,1,'last');
+    reward(1,k) = mean(reward_raw(1:firstnonzero-1));
+    reward(2:end,k) = interp1(time_step(firstnonzero:lastnonzero),movmean(reward_raw(firstnonzero:lastnonzero),average_window),t_q(2:end),'linear','extrap');
+end
+
+end
+function [reward_raw,time_step] = read_one_instance(train_path)
+T = readlines([train_path '/agent_00_rank_000_cumulative_rewards.dat']);
+reward_raw = zeros(1,length(T)-1);
+time_step = zeros(1,length(T)-1);
+valid = true(1,length(T)-1);
+for i = 1:length(T)-1
+    resultStrings = split(T(i));
+
+    reward_raw(i) = str2double(resultStrings(end));
+    time_step(i) = str2double(resultStrings(2));
+    if (time_step(i)>0) && (time_step(i) <= time_step(i-1))
+        last_index = find(time_step(1:i)<time_step(i),1,'last');
+        valid(last_index+1:i-1) = false;
+    end
+end
+reward_raw = reward_raw(valid);
+time_step = time_step(valid);
+end

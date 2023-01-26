@@ -36,6 +36,10 @@ for a,b in y:
 init_time = np.zeros_like(t)
 for j,tp in enumerate(t):
     init_time[j] = tp*4.5
-np.save('swimmer_initpositions',positions)
-np.save('target_positions',targets)
-np.save('init_time',init_time)
+print(positions)
+print(targets)
+print(init_time)
+
+np.save('swimmer_initpositions111',positions)
+np.save('target_positions111',targets)
+np.save('init_time111',init_time)

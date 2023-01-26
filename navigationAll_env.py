@@ -33,8 +33,7 @@ class DipoleSingleEnv(gym.Env):
         self.bw = param.bw
         self.dt = param.dt
         self.flex = param.flexibility
-        self.cfdpath = param.cfdpath
-
+        
         self.region_offset = param.train_offset
         flow_dict = {
             'CFD': self.__flowVK_CFD,
@@ -95,6 +94,7 @@ class DipoleSingleEnv(gym.Env):
             self.reward_mode = "default"
         self.rewardFun = reward_dict[self.reward_mode]
         if ('CFD' in self.mode):
+            self.cfdpath = param.cfdpath
             self.permittedL = param.cfdDomainL
             self.permittedR = param.cfdDomainR
             self.permittedU = param.cfdDomainU
@@ -119,7 +119,7 @@ class DipoleSingleEnv(gym.Env):
             self.Gamma = param.Gamma
             self.bgflow = param.bgflow
             self.cut = param.cut
-            # self.time_span = 
+            self.time_span = param.period
         self.trail = []
         self.target = np.zeros((2,))
 
@@ -178,7 +178,7 @@ class DipoleSingleEnv(gym.Env):
         # compute the fish nose position
         reward = 0
         reward += self.pos[0]-self.oldpos[0]
-        if self.pos[0] > -2:
+        if self.pos[0] > -6:
             reward += 200
             terminal = True
         if self.pos[0]>self.permittedR or self.pos[0]<self.permittedL or self.pos[1]<self.permittedD or self.pos[1]>self.permittedU:
@@ -231,9 +231,12 @@ class DipoleSingleEnv(gym.Env):
         lam = self.lam
         z = pos[0]+1j*pos[1]
         U = Gamma/2/lam*np.tanh(2*np.pi*A/lam)+self.bgflow
+
         # print("lam",lam,"z",z,"A",A,"t",t,"U",U, "tan", np.pi*(z + 1j*A - t*U)/lam)
-        if np.abs(z + 1j*A - t*U) > 0 and np.abs(z-lam/2-1j*A - t*U) > 0:
-            wVK = 1j*Gamma/2/lam*(1/np.tan(np.pi*(z + 1j*A - t*U)/lam) - 1/np.tan(np.pi*(z-lam/2-1j*A - t*U)/lam))
+        singular1 = np.tan(np.pi*(z + 1j*A - t*U)/lam)
+        singular2 = np.tan(np.pi*(z-lam/2-1j*A - t*U)/lam)
+        if (abs(singular1) > 1e-3)  and (abs(singular2) > 1e-3):
+            wVK = 1j*Gamma/2/lam*(1/singular1 - 1/singular2)
         else:
             wVK = 0
         uVK = np.real(wVK)
@@ -349,13 +352,11 @@ class DipoleSingleEnv(gym.Env):
             target_centerY = 0
             self.set_target(target_centerX + (np.random.rand()-0.5)*4, target_centerY + (np.random.rand()-0.5)*6)
         elif self.reset_mode == "Sourceseeking":            
-            swimmer_centerX = (self.permittedR + self.permittedL)/2 + 8
+            swimmer_centerX = (self.permittedR + self.permittedL)/2+2
             swimmer_centerY = 0
-            self.pos = [swimmer_centerX + (np.random.rand()-0.5)*4, swimmer_centerY + (np.random.rand()-0.5)*6, np.random.rand()*2*np.pi]
+            self.pos = [swimmer_centerX + (np.random.rand()-0.5)*4, swimmer_centerY + (np.random.rand()-0.5)*4, np.random.rand()*2*np.pi]
 
-            target_centerX = 0
-            target_centerY = 0
-            self.set_target(target_centerX + (np.random.rand()-0.5)*4, target_centerY + (np.random.rand()-0.5)*6)
+            self.set_target(0,0)
         """When init position/ target position is specifically given"""
         if position is not None:
             self.pos = position
@@ -1133,10 +1134,10 @@ class DipoleSingleEnv(gym.Env):
         set the movie frame bounds, note that the numbers must be integers!!!
         """
         if (self.mode == 'reduced'):
-            leftbound = -8
-            rightbound = 8
-            lowerbound = -6
-            upperbound = 6
+            leftbound = -24
+            rightbound = 0
+            lowerbound = -8
+            upperbound = 8
         else:
             leftbound = -24
             rightbound = 8

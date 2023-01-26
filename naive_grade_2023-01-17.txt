@@ -1,0 +1,1 @@
+naive policy: success rate:0.002, average time:479.653, average success time:11.5

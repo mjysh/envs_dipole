@@ -1,7 +1,7 @@
 close all;
 clear;
 %%
-Nobs = 5;
+Nobs = 6;
 Naction = 1;
 N1 = 128;
 N2 = 128;
@@ -12,7 +12,8 @@ NNsize = [N1, N2];
 % SCALE = fread(ID,'double');
 % obs_mean = SCALE(1:5);
 % obs_scale = SCALE(6:10);
-
+policy_path = '/home/yusheng/smarties/apps/dipole_adapt/paper/egoLRGrad1';
+vracerNN = loadvracerNN(policy_path,Nobs,N1,N2,Naction);
 %%
 vracerNN = loadvracerNN('bestpolicy_geo',Nobs,N1,N2,Naction);
 % vracerNN = loadvracerNN('bestpolicy_egograd',Nobs,N1,N2,Naction);

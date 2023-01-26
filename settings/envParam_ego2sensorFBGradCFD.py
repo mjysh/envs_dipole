@@ -28,8 +28,8 @@ cut = 0.5
 ##===============================================================================================##
 #  for CFD
 # permitted range of area
-cfdDomainL = -15.5
-cfdDomainR = 7.5
+cfdDomainL = -23.5
+cfdDomainR = -0.5
 cfdDomainU = 5.5
 cfdDomainD = -5.5
 time_span = 60                 # maximum simulation time
