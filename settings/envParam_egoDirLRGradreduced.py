@@ -3,9 +3,8 @@ bl = 1               # length
 bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
-flowMode = 'CFD'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
-obsMode = 'egoFourSensorGradOnly'      # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'
-# 'egoFourSensorGradOnly'...
+flowMode = 'reduced'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
+obsMode = 'egoDirLRGrad'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorLRGrad','egoTwoSensorFB'
 ##===============================================================================================##
 dt = 0.1
 mu = 0.8                                  # swimming speed
@@ -16,16 +15,16 @@ cfdpath = '/home/yusheng/CFDadapt/'
 ##===============================================================================================##
 """  for reduced-order wake """
 # permitted range of area
-reducedDomainL = -8
-reducedDomainR = 8
-reducedDomainU = 5.5
-reducedDomainD = -5.5
-A = 0.5
-lam = 3
+reducedDomainL = -24
+reducedDomainR = 0
+reducedDomainU = 6
+reducedDomainD = -6
+A = 0.2
+lam = 4
 Gamma = 3
 bgflow = -1.0                             # background horizontal flow velocity
-cut = 0.5
-
+cut = 0.6
+period = lam/0.6096427823203662
 ##===============================================================================================##
 #  for CFD
 # permitted range of area

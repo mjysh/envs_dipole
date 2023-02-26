@@ -50,7 +50,13 @@ def test():
         for t in range(max_timesteps):
             # action = ppo.select_action(state, memory)
             # action = [0.0]
-            action = [2*((state[0]>0)-0.5)]
+            dx = env.target[0] - env.pos[0]
+            dy = env.target[1] - env.pos[1]
+            target_angle = np.arctan2(dy,dx)
+            relort = angle_normalize(target_angle - env.pos[-1])
+
+            action = [np.sign(relort)]
+            # action = [2*((state[0]>0)-0.5)]
             state, reward, done, _ = env.step(action)
             ep_reward += reward
             # print(state)
@@ -110,6 +116,8 @@ def test():
         print('Episode: {}\tReward: {}'.format(ep, (ep_reward)))
         ep_reward = 0
         env.close()
+def angle_normalize(x,center = 0,half_period = np.pi):
+    return (((x+half_period-center) % (2*half_period)) - half_period+center)
 if __name__ == '__main__':
     test()
     

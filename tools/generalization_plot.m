@@ -4,8 +4,8 @@ clear;
 figureDefaultSettings;
 %%
 n_angle = 36;
-ang_start = 10;
-ang_end = 18;
+ang_start = 1;
+ang_end = 36;
 source = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/';
 %% select colors
 
@@ -18,19 +18,27 @@ range = [0,2*pi];
 
 targetX = -12;
 targetY = 2.15;
-policy_name = 'geo8';
+policy_name = 'geo3';
 [success_geo, is_trained_geo, totTime_geo] = test_result_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+%%
 policy_name = 'egoLRGrad1';
 [success_ego, is_trained_ego, totTime_ego] = test_result_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
 %%
 targetX = -12;
 targetY = 2.15;
-policy_name = 'geo1sensorreduced1';
-[success_geo, is_trained_geo, totTime_geo] = test_result_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+% policy_name = 'georeduced1';
+% env = 'georeduced_widebound';
+% policy_name = 'egoLRGradreduced1';
+% env = 'egoLRGradreduced_widebound';
+policy_name = 'egoDirLRGradreduced3';
+env = 'egoDirLRGradreduced_widebound';
+[success_geo, is_trained_geo, totTime_geo] = test_result_plot(source, env, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
 %%
-rewardX = -6;
-policy_name = 'sourceseeking3';
-[success_ego, is_trained_ego, totTime_ego] = sourceseeking_result_plot(source, policy_name, n_angle,ang_start,ang_end,rewardX);
+rewardX = -8;
+policy_name = 'sourceseeking_reduced1';
+env = 'egoLRGradSourceseekingreduced';
+env = 'egoLRGradSourceseekingreduced';
+[success_ego, is_trained_ego, totTime_ego] = sourceseeking_result_plot(source, policy_name,env,n_angle,ang_start,ang_end,rewardX);
 %%
 shared_geo = totTime_geo(success_ego&success_geo);
 shared_ego = totTime_ego(success_ego&success_geo);
@@ -57,8 +65,8 @@ figure;
 colormap(c);
 colorbar
 %%
-function [success, is_trained, totTime] = test_result_plot(source, policy_name, n_angle,ang_start,ang_end, targetX, targetY)
-load([source policy_name '/success_region' num2str(targetX) '_' num2str(targetY) '.mat'], ...
+function [success, is_trained, totTime] = test_result_plot(source, env,policy_name, n_angle,ang_start,ang_end, targetX, targetY)
+ load([source policy_name '/success_region' num2str(targetX) '_' num2str(targetY) '_' env '.mat'], ...
     'reward','totTime','initX','initY','initTheta','target')
 assert(targetX == target(1));
 assert(targetY == target(2));
@@ -92,10 +100,18 @@ end
 
 
 figure('Position',[960 848 640 284]);
-[bg,map] = imread("movie2000.png","png");hold on;
-image([-24,8],[8,-8],ind2rgb(bg,map));
+if contains(env,'reduced')
+    lam = 4;
+    A = 0.3;
+    vortexUpX = mod(24,lam)-24:lam:0;
+    vortex_up = plot(vortexUpX,A*ones(size(vortexUpX)),'r.','MarkerSize',24); hold on
+    vortexDownX = mod(24+lam/2,lam)-24:lam:0;
+    vortex_down = plot(vortexDownX,-A*ones(size(vortexDownX)),'b.','MarkerSize',24);
+else
+    [bg,map] = imread("movie2000.png","png");hold on;
+    image([-24,8],[8,-8],ind2rgb(bg,map));
+end
 plot(targetX,targetY,'p',Color=[50/255,100/255,50/255]);
-
 sr_overall = mean(success);
 is_trained = ((initX + 12).^2 + (initY + 2.15).^2 <= 4);
 sr_trained = mean(success(is_trained));
@@ -108,16 +124,25 @@ x = initX(1:n_angle:end);y = initY(1:n_angle:end);
 s = scatter(x,y,24,sr,'filled');
 axis equal;
 colorbar('Location','westoutside')
-xlim([-23.5,0]);
-ylim([-6,6]);
+xlim([min(min(initX),-23.5),max(max(initX),0)]);
+ylim([min(min(initY),-6),max(max(initY),6)]);
 axis off
 the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
 exportgraphics(gcf,['./savedFigs/' policy_name '_' num2str(targetX) '_' num2str(targetY) '_successrate.eps'])
 
 figure('Position',[960 848 640 284]);
-[bg,map] = imread("movie2000.png","png");hold on;
-image([-24,8],[8,-8],ind2rgb(bg,map));
+if contains(env,'reduced')
+    lam = 4;
+    A = 0.3;
+    vortexUpX = mod(24,lam)-24:lam:0;
+    vortex_up = plot(vortexUpX,A*ones(size(vortexUpX)),'r.','MarkerSize',24); hold on
+    vortexDownX = mod(24+lam/2,lam)-24:lam:0;
+    vortex_down = plot(vortexDownX,-A*ones(size(vortexDownX)),'b.','MarkerSize',24);
+else
+    [bg,map] = imread("movie2000.png","png");hold on;
+    image([-24,8],[8,-8],ind2rgb(bg,map));
+end
 plot(targetX,targetY,'p',Color=[50/255,100/255,50/255]);
 title([replace(policy_name,'_',' ') ', ' num2str(sr_overall)]);
 cmap = cbrewer('seq','BuPu',400,'linear');
@@ -127,8 +152,8 @@ s = scatter(x,y,24,tc,'filled');
 axis equal;
 caxis([0,1000]);
 colorbar('Location','westoutside')
-xlim([-23.5,0]);
-ylim([-6,6]);
+xlim([min(min(initX),-23.5),max(max(initX),0)]);
+ylim([min(min(initY),-6),max(max(initY),6)]);
 axis off
 the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
@@ -136,10 +161,10 @@ exportgraphics(gcf,['./savedFigs/' policy_name '_' num2str(targetX) '_' num2str(
 
 end
 %%
-function [success, is_trained, totTime] = sourceseeking_result_plot(source, policy_name, n_angle,ang_start,ang_end,rewardX)
-load([source policy_name '/success_region_sourceseeking_' num2str(rewardX) '.mat'], ...
+function [success, is_trained, totTime] = sourceseeking_result_plot(source, policy_name, env,n_angle,ang_start,ang_end,rewardX)
+load([source policy_name '/success_region_sourceseeking_' env num2str(rewardX) '.mat'], ...
     'reward','totTime','initX','initY','initTheta','threshold')
-assert(rewardX == threshold)
+% assert(rewardX == threshold)
 selected = initX > -23.2;
 initX = initX(selected);
 initY = initY(selected);

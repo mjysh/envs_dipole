@@ -12,14 +12,107 @@ set(groot,'defaultPolarAxesTickLabelInterpreter','latex');
 set(groot,'defaultAxesTickLabelInterpreter','latex');
 set(groot,'defaultAxesLineWidth',1);
 %%
-% dir = './';
-train_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/geo';
+root_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/';
+RLsetting_list = {'geo';
+    'egoLRGrad';
+    'egolimited';
+    'geoflowblind';
+    'georeduced';
+    'egoLRGradreduced';
+    'egoDirLRGradreduced';
+    'egolimitedreduced',
+    'transfer_exp'};
+policies = struct('name',RLsetting_list,'count',0,'folder_name',[],'training_length',[],'reward_final',[],'rewards',[],'converge_time',[],'timesteps',[]);
+all_content = dir(root_dir);
+for i = 1:length(all_content)
+    for l = 1:length(RLsetting_list)
+        if startsWith(all_content(i).name, RLsetting_list{l}) && ~isnan(str2double(all_content(i).name(length(RLsetting_list{l})+1:end)))
+            policies(l).count = policies(l).count + 1;
+            policies(l).folder_name{end+1} = all_content(i).name;
+            break;
+        end
+    end
+end
+%%
+average_window = 500;
+for l = 1:length(RLsetting_list)
+    %     reward = zeros(length(t_q),n_end-n_start+1);
+    %         convergence_time = zeros(n_end-n_start+1,1);
+    for i = 1:policies(l).count
+        [reward_raw,time_step] = read_one_instance([root_dir policies(l).folder_name{i}]);
+        firstnonzero = find(time_step,1);
+        lastnonzero = find(time_step,1,'last');
+        policies(l).training_length(end+1) = time_step(lastnonzero);
+        policies(l).reward_final(end+1) = mean(reward_raw(lastnonzero-average_window+1:lastnonzero));
+        t_q = linspace(0,time_step(lastnonzero),101);
+        policies(l).timesteps(i) = time_step(lastnonzero);
+        policies(l).rewards{end+1} = zeros(length(t_q),1);
+        policies(l).rewards{end}(1) = mean(reward_raw(1:firstnonzero-1));
+        policies(l).rewards{end}(2:end) = interp1(time_step(firstnonzero:lastnonzero), ...
+            movmean(reward_raw(firstnonzero:lastnonzero),average_window),t_q(2:end),'linear','extrap');
+        convergence_index = find(abs(policies(l).rewards{end} - policies(l).reward_final(end))<10,1);
+        if (convergence_index == 101) || isempty(convergence_index)
+            policies(l).converge_time(end+1) = t_q(end);
+        else
+            policies(l).converge_time(end+1) = t_q(convergence_index+1);
+        end
+    end
+end
+save("learning_data.mat","policies")
+%%
+[reward_raw,time_step] = read_one_instance([root_dir 'geo1']);
+figure,plot(time_step,reward_raw,'.','MarkerSize',1);
+xlabel('time steps');
+ylabel('cumulative reward');
+figure,plot(reward_raw,'.','MarkerSize',1);
+xlabel('episodes');
+ylabel('cumulative reward');
+%%
+average_window = 500;
+firstnonzero = find(time_step,1);
+lastnonzero = find(time_step,1,'last');
+t_q = linspace(0,time_step(lastnonzero),101);
+rewards = zeros(length(t_q),1);
+reward_final = mean(reward_raw(lastnonzero-average_window+1:lastnonzero));
+rewards(1) = mean(reward_raw(1:firstnonzero-1));
+rewards(2:end) = interp1(time_step(firstnonzero:lastnonzero), ...
+    movmean(reward_raw(firstnonzero:lastnonzero),average_window),t_q(2:end),'linear','extrap');
+figure,plot(t_q,rewards);
+xlabel('time steps');
+ylabel('cumulative reward (moving average interp)');
+convergence_index = find(abs(rewards - reward_final)<10,1);
+hold on;
+plot([t_q(convergence_index) t_q(convergence_index)],[0,rewards(convergence_index)],'r--')
+
+%%
+load('learning_data.mat')
+for l = 1:length(policies)
+    figure;
+    l
+    for instance = 1:policies(l).count
+        t_q = linspace(0,policies(l).timesteps(instance),101);
+        subplot(2,1,1),plot(t_q,policies(l).rewards{instance},'k','LineWidth',1);
+        hold on;
+        plot([policies(l).converge_time(instance) policies(l).converge_time(instance)],[0,200],'r--','LineWidth',0.5)
+    end
+    max_timesteps = max(policies(l).timesteps);
+    xlim([0,max_timesteps]);
+    subplot(2,1,2);
+    histogram(policies(l).converge_time,linspace(0,max_timesteps,21));
+    xlim([0,max_timesteps]);
+    xlabel('time steps');
+    ylabel('count of convergence')
+end
+
+%%
+train_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/egoLRGrad';
+train_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/georeduced';
 n_best = 1;
-max_timestep = 1e7;
+max_timestep = 2e7;
 t_q = linspace(0,max_timestep,101);
 %%
-start_index = 1;
-end_index = 1;
+start_index = 4;
+end_index = 4;
 average_window = 500;
 reward = read_learning_log(train_dir, start_index, end_index,t_q,average_window);
 %% all curves
@@ -30,6 +123,18 @@ plot(t_q,reward(:,n_best)','-','color',[0.7,0.3,0.2],'LineWidth',1);
 ylim([-10,210]);
 ylabel('reward');
 xlabel('time steps');
+%%
+reward_std = zeros(1,100);
+reward_min = zeros(1,100);
+reward_max = zeros(1,100);
+for i = 1:100
+    reward_min(i) = min(reward(i:end));
+    reward_max(i) = max(reward(i:end));
+    reward_std(i) = std(reward(i:end));
+end
+figure,plot(reward_std/200);
+hold on, plot((max(reward)-reward_min)/200);
+legend
 %% range
 figure("Position", [960 1061 363 252]);
 x_axis = t_q;lColor = [0.2 0.6 0.7];aColor = [0.5 0.75 0.85];lWidth = 1.5;
@@ -49,7 +154,7 @@ xlabel('time steps');
 %%
 function [reward,reward_raw,time_step] = read_learning_log(train_dir, n_start, n_end,t_q,average_window)
 reward = zeros(length(t_q),n_end-n_start+1);
-for k = n_start:n_end
+for k = 1:n_end-n_start+1
     [reward_raw,time_step] = read_one_instance([train_dir num2str(k)]);
     firstnonzero = find(time_step,1);
     lastnonzero = find(time_step,1,'last');

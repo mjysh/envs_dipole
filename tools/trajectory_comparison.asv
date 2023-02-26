@@ -12,7 +12,7 @@ set(groot,'defaultAxesTickLabelInterpreter','latex');
 set(groot,'defaultAxesLineWidth',1);
 %%
 % dir = './lab/';
-dir = './egoGradLR/';
+dir = 'egogradLR/';
 [target, init, X, Y, Theta, time, reward] = getTrajectory(dir);
 
 

@@ -71,14 +71,22 @@ class VRACER_NN():
         return [action]
 def generalization_test(args):
     from tqdm import tqdm
+    if args.test_bound:
+        boundL, boundR, boundD, boundU = args.test_bound
+    else:
+        boundL = -23.0
+        boundR = -1.0
+        boundD = -5.0
+        boundU = 5.0
+    print(f"Test with initial position within left:{boundL}, right:{boundR}, bottom:{boundD}, top:{boundU}")
     #######pre-generated initial conditions############
     init_x, init_y, init_theta = [arr.flatten() for 
-    arr in np.meshgrid(np.arange(-23.0,-0.5,0.5),np.arange(-5.0,5.5,0.5),np.arange(0,2*np.pi,np.pi/18))]
+    arr in np.meshgrid(np.arange(boundL,boundR+0.5,0.5),np.arange(boundD,boundU+0.5,0.5),np.arange(0,2*np.pi,np.pi/18))]
     if args.target_pos:
         target_pos = args.target_pos
     else:
         target_pos = [-12, 2.15]
-
+    print(f"Test with target at {target_pos}")
     ############## Hyperparameters ##############
     if args.policy_num:
         policy_paths = [args.policy_path+str(k) for k in range(1,args.policy_num+1)]
@@ -95,8 +103,11 @@ def generalization_test(args):
         n_episodes = len(init_x)          # num of episodes to run
         render = False           # render the environment
         max_timesteps = 1500
-        with open(policy_path+"/paramToUse.txt","r") as paramFile:
-            settings = paramFile.readline().strip()
+        if args.env_setting:
+            settings = args.env_setting
+        else:
+            with open(policy_path+"/paramToUse.txt","r") as paramFile:
+                settings = paramFile.readline().strip()
         env = fish.DipoleSingleEnv(paramSource = 'envParam_'+settings)
         obs_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
@@ -161,7 +172,7 @@ def generalization_test(args):
             "action": action_history
             }
         from scipy.io import savemat
-        savemat(policy_path+f"/success_region{target_pos[0]}_{target_pos[1]}.mat", mdic, oned_as='row', do_compression=True)
+        savemat(policy_path+f"/success_region{target_pos[0]}_{target_pos[1]}_{settings}.mat", mdic, oned_as='row', do_compression=True)
         print('total:', n_episodes, 'success:', success)
         print('success rate:', success/n_episodes)
     res_strs = []
@@ -196,8 +207,11 @@ def sourceseeking_test(args):
         n_episodes = len(init_x)          # num of episodes to run
         render = False           # render the environment
         max_timesteps = 1000
-        with open(policy_path+"/paramToUse.txt","r") as paramFile:
-            settings = paramFile.readline()
+        if args.env_setting:
+            settings = args.env_setting
+        else:
+            with open(policy_path+"/paramToUse.txt","r") as paramFile:
+                settings = paramFile.readline().strip()
         assert 'Sourceseeking' in settings
         env = fish.DipoleSingleEnv(paramSource = 'envParam_'+settings)
         obs_dim = env.observation_space.shape[0]
@@ -253,7 +267,7 @@ def sourceseeking_test(args):
         mdic = {"initX": init_x,
             "initY": init_y,
             "initTheta": init_theta,
-            "threshold": -6,
+            "threshold": -8,
             "reward": rewards,
             "totTime": total_time,
             "trajX": x_history,
@@ -263,7 +277,7 @@ def sourceseeking_test(args):
             "action": action_history
             }
         from scipy.io import savemat
-        savemat(policy_path+f"/success_region_sourceseeking_-6.mat", mdic, oned_as='row', do_compression=True)
+        savemat(policy_path+f"/success_region_sourceseeking_{settings}-8.mat", mdic, oned_as='row', do_compression=True)
         print('total:', n_episodes, 'success:', success)
         print('success rate:', success/n_episodes)
     res_strs = []
@@ -384,8 +398,11 @@ def grade_policy(args):
         n_episodes = len(init_time)          # num of episodes to run
         render = False           # render the environment
         max_timesteps = args.max_timesteps
-        with open(policy_path+"/paramToUse.txt","r") as paramFile:
-            settings = paramFile.readline()
+        if args.env_setting:
+            settings = args.env_setting
+        else:
+            with open(policy_path+"/paramToUse.txt","r") as paramFile:
+                settings = paramFile.readline().strip()
         env = fish.DipoleSingleEnv(paramSource = 'envParam_'+settings)
         obs_dim = env.observation_space.shape[0]
         action_dim = env.action_space.shape[0]
@@ -450,7 +467,7 @@ def grade_policy(args):
             "action": action_history
             }
         from scipy.io import savemat
-        savemat(policy_path+"/grading_results.mat", mdic, oned_as='row', do_compression=True)
+        savemat(policy_path+f"/grading_results_{settings}.mat", mdic, oned_as='row', do_compression=True)
     res_strs = []
     policy_index = 1
     for sr,at,ast in zip(success_rate,average_time,average_success_time):
@@ -458,7 +475,7 @@ def grade_policy(args):
         print(res_strs[-1])
         policy_index += 1
     from datetime import date
-    with open(args.policy_path+'_grade_'+str(date.today())+'.txt','w') as resultFile:
+    with open(args.policy_path+f'_grade_{settings}' +str(date.today())+'.txt','w') as resultFile:
         resultFile.writelines(res_strs)
 def test(args):
     ############## Hyperparameters ##############
@@ -478,7 +495,7 @@ def test(args):
     if args.swimmer_init:
         initPos = args.swimmer_init
     else:
-        initPos = [-12.0,-2.15,0.0]
+        initPos = None
     if args.target_pos:
         target_pos = args.target_pos
     else:
@@ -495,8 +512,9 @@ def test(args):
     obs_history = np.zeros((obs_dim,max_timesteps))
     action_history = np.zeros((max_timesteps))
     ep_reward = 0
-    env = wrappers.Monitor(env, './Movies/test',force = True)
+    env = wrappers.Monitor(env, './Movies/test_single',force = True)
     obs = env.reset(position = initPos, target = target_pos, init_time = None)
+    initPos = env.pos
     env.done = False
     for t in range(max_timesteps):
         action = trained_policy.obs_to_act(obs)
@@ -530,7 +548,7 @@ def test(args):
             "action": action_history
             }
     from scipy.io import savemat
-    savemat(policy_path+"/random_test_data.mat", mdic, oned_as='row', do_compression=True)
+    savemat(policy_path+f"/random_test_data_{settings}.mat", mdic, oned_as='row', do_compression=True)
 #        import matplotlib.pyplot as plt
 #        from matplotlib import rc
 #        import matplotlib as mpl
@@ -580,6 +598,7 @@ if __name__ == '__main__':
     parser.add_argument('--target_pos', type=float, nargs=2)
     parser.add_argument('--swimmer_init', type=float, nargs=3)
     parser.add_argument('--max_timesteps', action="store", default=1000)
+    parser.add_argument('--test_bound', type=float, nargs=4, default = [])
     args = parser.parse_args()
     print(f'MODE: {args.test_mode}')
     if args.test_mode == 'policy_grading':
