@@ -253,6 +253,30 @@ class DipoleSingleEnv(gym.Env):
         uVK += self.bgflow
         oVK = 0
         return uVK,vVK,oVK
+    def __gradVK_reduced(self, pos, t):
+        A = self.A
+        Gamma = self.Gamma
+        lam = self.lam
+        U = Gamma/2/lam*np.tanh(2*np.pi*A/lam)+self.bgflow
+
+        D = Gamma/2/lam
+        C = U*t
+        x = pos[0]
+        y = pos[1]
+        singular1 = np.tan(np.pi*(x + 1j*y + 1j*A - t*U)/lam)
+        singular2 = np.tan(np.pi*(x + 1j*y-lam/2-1j*A - t*U)/lam)
+
+        if (abs(singular1) > 1e-3)  and (abs(singular2) > 1e-3):
+            dudx = (2*D*np.pi/lam)*np.sin(2*np.pi*(C-x)/lam)*\
+                                        (np.sinh(2*np.pi*(-A+y)/lam)/(np.cos(2*np.pi*(C-x)/lam)+np.cosh(2*np.pi*(-A+y)/lam))**2+
+                                         np.sinh(2*np.pi*(A+y)/lam)/(np.cos(2*np.pi*(C-x)/lam)-np.cosh(2*np.pi*(A+y)/lam))**2)
+            dudy = (2*D*np.pi/lam)*(np.cosh(2*np.pi*(-A+y)/lam)/(np.cos(np.pi*(2*C-2*x+lam)/lam)-np.cosh(2*np.pi*(-A+y)/lam))+
+                                    np.cosh(2*np.pi*(A+y)/lam)/(-np.cos(2*np.pi*(-C+x)/lam)+np.cosh(2*np.pi*(A+y)/lam))+
+                                    (np.sinh(2*np.pi*(-A+y)/lam))**2/(np.cos(np.pi*(2*C-2*x+lam)/lam)-np.cosh(2*np.pi*(-A+y)/lam))**2-
+                                    (np.sinh(2*np.pi*(A+y)/lam))**2/(np.cos(2*np.pi*(-C+x)/lam)-np.cosh(2*np.pi*(A+y)/lam))**2)
+        else:
+            dudx = dudy = 0
+        return dudx,dudy
     def __initialConfig(self,mode, init_num):
         # get the initial configuration of the fish
         ####################circular zone#######################
@@ -292,7 +316,7 @@ class DipoleSingleEnv(gym.Env):
             self.pos = [swimmer_centerX + np.cos(the)*r, swimmer_centerY + np.sin(the)*r, np.random.rand()*2*np.pi]
             r = 2*np.sqrt(np.random.rand())
             the = np.random.rand()*2*np.pi
-            self.set_target(target_centerX + np.cos(the)*r, target_centerY + np.sin(the)*r)
+            self.set_target(target_centerX + np.cos(the)*r, target_centerY + np.sin(the)*r-1)
             ########################################################
             ############square zone###############
             # X = (self.permittedR + 3*self.permittedL)/4+np.random.rand()*(self.permittedR - self.permittedL)/2
@@ -530,22 +554,38 @@ class DipoleSingleEnv(gym.Env):
         egocentric swimmer position and local flow field and lateral gradient
         """
         ort = angle_normalize(self.pos[-1])
-        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
-        posRight = np.array(self.pos[0:2])*2 - posLeft
-        uVKL,vVKL,_ = self.flow(posLeft,self.time)
-        uVKR,vVKR,_ = self.flow(posRight,self.time)
-        
         dx = self.target[0] - self.pos[0]
         dy = self.target[1] - self.pos[1]
 
         relx = dx*np.cos(ort) + dy*np.sin(ort)
         rely = -dx*np.sin(ort) + dy*np.cos(ort)
+        # if self.mode == "reduced":
+        #     uVK,vVK,_ = self.flow(self.pos[:2],self.time)
+        #     relu = uVK*np.cos(ort) + vVK*np.sin(ort)
+        #     relv = -uVK*np.sin(ort) + vVK*np.cos(ort)
+
+        #     dudx, dudy = self.__gradVK_reduced(self.pos[:2], self.time)
+        #     reldudx = np.cos(2*ort)*dudx+np.sin(2*ort)*dudy
+        #     reldudy = -np.sin(2*ort)*dudx+np.cos(2*ort)*dudy
+        #     reldvdy = -reldudx
+
+        # else:
+        posLeft = self.pos[0:2] + np.array([-0.05*np.sin(ort), 0.05*np.cos(ort)])
+        posRight = np.array(self.pos[0:2])*2 - posLeft
+        uVKL,vVKL,_ = self.flow(posLeft,self.time)
+        uVKR,vVKR,_ = self.flow(posRight,self.time)
+        
         reluL = uVKL*np.cos(ort) + vVKL*np.sin(ort)
         relvL = -uVKL*np.sin(ort) + vVKL*np.cos(ort)
         reluR = uVKR*np.cos(ort) + vVKR*np.sin(ort)
         relvR = -uVKR*np.sin(ort) + vVKR*np.cos(ort)
+
+        relu = (reluL + reluR)/2
+        relv = (relvL + relvR)/2
+        reldudy = (reluL - reluR)/0.1
+        reldvdy = (relvL - relvR)/0.1
         
-        return np.array([relx, rely, (reluL + reluR)/2, (relvL + relvR)/2, (reluL - reluR)/0.1, (relvL - relvR)/0.1])
+        return np.array([relx, rely, relu, relv, reldudy, reldvdy])
     def _get_obs_egolrgradonlynovision(self):
         """
         egocentric  lateral gradient

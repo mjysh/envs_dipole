@@ -80,13 +80,32 @@ def generalization_test(args):
         boundU = 5.0
     print(f"Test with initial position within left:{boundL}, right:{boundR}, bottom:{boundD}, top:{boundU}")
     #######pre-generated initial conditions############
-    init_x, init_y, init_theta = [arr.flatten() for 
-    arr in np.meshgrid(np.arange(boundL,boundR+0.5,0.5),np.arange(boundD,boundU+0.5,0.5),np.arange(0,2*np.pi,np.pi/18))]
-    if args.target_pos:
-        target_pos = args.target_pos
+    if args.vary_target:
+        target_x, target_y, init_theta = [arr.flatten() for 
+        arr in np.meshgrid(np.arange(boundL,boundR+0.5,0.5),
+                           np.arange(boundD,boundU+0.5,0.5),
+                           np.arange(0,2*np.pi,np.pi/18))]
+        n_episodes = len(init_theta)
+        if args.swimmer_init:
+            init_x = np.repeat(args.swimmer_init[0],n_episodes)
+            init_y = np.repeat(args.swimmer_init[1],n_episodes)
+        else:
+            init_x = np.repeat(-12,n_episodes)
+            init_y = np.repeat(-2.15,n_episodes)
+        print(f"Test with swimmer starting from {init_x[0],init_y[0]}")
     else:
-        target_pos = [-12, 2.15]
-    print(f"Test with target at {target_pos}")
+        init_x, init_y, init_theta = [arr.flatten() for 
+        arr in np.meshgrid(np.arange(boundL,boundR+0.5,0.5),
+                           np.arange(boundD,boundU+0.5,0.5),
+                           np.arange(0,2*np.pi,np.pi/18))]
+        n_episodes = len(init_x)
+        if args.target_pos:
+            target_x = np.repeat(args.target_pos[0],n_episodes)
+            target_y = np.repeat(args.target_pos[1],n_episodes)
+        else:
+            target_x = np.repeat(-12,n_episodes)
+            target_y = np.repeat(2.15,n_episodes)
+        print(f"Test with target at {args.target_pos}")
     ############## Hyperparameters ##############
     if args.policy_num:
         policy_paths = [args.policy_path+str(k) for k in range(1,args.policy_num+1)]
@@ -100,7 +119,7 @@ def generalization_test(args):
         print(policy_path)
         N1 = 128
         N2 = 128
-        n_episodes = len(init_x)          # num of episodes to run
+                  # num of episodes to run
         render = False           # render the environment
         max_timesteps = 1500
         if args.env_setting:
@@ -124,10 +143,10 @@ def generalization_test(args):
         total_time = []
         total_success_time = []
         rewards = []
-        print(f'Testing for target at {target_pos}')
         for ep in tqdm(range(n_episodes)):
             ep_reward = 0
-            obs = env.reset(position = [init_x[ep],init_y[ep],init_theta[ep]], target = target_pos, init_time = 0)
+            obs = env.reset(position = [init_x[ep],init_y[ep],init_theta[ep]], 
+                            target = [target_x[ep],target_y[ep]], init_time = 0)
             env.done = False
             for t in range(max_timesteps):
                 theta_history[t,ep] = env.pos[-1]
@@ -159,20 +178,37 @@ def generalization_test(args):
         success_rate.append(success/n_episodes)
         average_time.append(sum(total_time)/n_episodes)
         average_success_time.append(sum(total_success_time)/success if success else None)
-        mdic = {"initX": init_x,
-            "initY": init_y,
-            "initTheta": init_theta,
-            "target": target_pos,
-            "reward": rewards,
-            "totTime": total_time,
-            "trajX": x_history,
-            "trajY": y_history,
-            "trajTheta": theta_history,
-            # "observation": obs_history,
-            "action": action_history
-            }
-        from scipy.io import savemat
-        savemat(policy_path+f"/success_region{target_pos[0]}_{target_pos[1]}_{settings}.mat", mdic, oned_as='row', do_compression=True)
+        if args.vary_target:
+            mdic = {"initX": init_x[0],
+                "initY": init_y[0],
+                "initTheta": init_theta,
+                "targetX": target_x,
+                "targetY": target_y,
+                "reward": rewards,
+                "totTime": total_time,
+                "trajX": x_history,
+                "trajY": y_history,
+                "trajTheta": theta_history,
+                # "observation": obs_history,
+                "action": action_history
+                }
+            from scipy.io import savemat
+            savemat(policy_path+f"/success_region_varytarget_{init_x[0]}_{init_y[0]}_{settings}.mat", mdic, oned_as='row', do_compression=True)
+        else:
+            mdic = {"initX": init_x,
+                "initY": init_y,
+                "initTheta": init_theta,
+                "target": [target_x[0],target_y[0]],
+                "reward": rewards,
+                "totTime": total_time,
+                "trajX": x_history,
+                "trajY": y_history,
+                "trajTheta": theta_history,
+                # "observation": obs_history,
+                "action": action_history
+                }
+            from scipy.io import savemat
+            savemat(policy_path+f"/success_region{target_x[0]}_{target_y[0]}_{settings}.mat", mdic, oned_as='row', do_compression=True)
         print('total:', n_episodes, 'success:', success)
         print('success rate:', success/n_episodes)
     res_strs = []
@@ -302,7 +338,13 @@ def grade_naive_policy(args):
     n_episodes = len(init_time)          # num of episodes to run
     render = False           # render the environment
     max_timesteps = args.max_timesteps
-    env = fish.DipoleSingleEnv(paramSource = 'envParam_geo1sensorCFD')
+    policy_path = args.policy_path
+    if args.env_setting:
+        settings = args.env_setting
+    else:
+        with open(policy_path+"/paramToUse.txt","r") as paramFile:
+            settings = paramFile.readline().strip()
+    env = fish.DipoleSingleEnv(paramSource = 'envParam_'+settings)
     obs_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     # set the length of an episode
@@ -367,12 +409,12 @@ def grade_naive_policy(args):
         "action": action_history
         }
     from scipy.io import savemat
-    savemat("./grading_naive_results.mat", mdic, oned_as='row', do_compression=True)
+    savemat("./grading_naive_"+ settings+".mat", mdic, oned_as='row', do_compression=True)
     res_strs = []
     res_strs.append(f'naive policy: success rate:{success/n_episodes}, average time:{sum(total_time)/n_episodes}, average success time:{sum(total_success_time)/success if success else None}\n')
     print(res_strs[-1])
     from datetime import date
-    with open('naive_grade_'+str(date.today())+'.txt','w') as resultFile:
+    with open('naive_grade_'+settings+str(date.today())+'.txt','w') as resultFile:
         resultFile.writelines(res_strs)
 def grade_policy(args):
     #######pre-generated initial conditions############
@@ -463,15 +505,14 @@ def grade_policy(args):
             "trajX": x_history,
             "trajY": y_history,
             "trajTheta": theta_history,
-            "observation": obs_history,
-            "action": action_history
+            "target":init_target
             }
         from scipy.io import savemat
         savemat(policy_path+f"/grading_results_{settings}.mat", mdic, oned_as='row', do_compression=True)
-    res_strs = []
+    res_strs = ['policy, success rate, average time, average success time\n']
     policy_index = 1
     for sr,at,ast in zip(success_rate,average_time,average_success_time):
-        res_strs.append(f'policy {policy_index}: success rate:{sr}, average time:{at}, average success time:{ast}\n')
+        res_strs.append(f'{policy_index}, {sr}, {at}, {ast}\n')
         print(res_strs[-1])
         policy_index += 1
     from datetime import date
@@ -592,6 +633,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_mode', type=str ,choices=['policy_grading', 'generalization', 'single','naive_grading','sourceseeking_generalization'], required=True)
+    
     parser.add_argument('--policy_path', type=str, default='tools/bestpolicy_geo')
     parser.add_argument('--env_setting', type=str, default='')
     parser.add_argument('--policy_num', type=int, default = 0)
@@ -599,6 +641,7 @@ if __name__ == '__main__':
     parser.add_argument('--swimmer_init', type=float, nargs=3)
     parser.add_argument('--max_timesteps', action="store", default=1000)
     parser.add_argument('--test_bound', type=float, nargs=4, default = [])
+    parser.add_argument('--vary_target', action="store_true", default = False)
     args = parser.parse_args()
     print(f'MODE: {args.test_mode}')
     if args.test_mode == 'policy_grading':

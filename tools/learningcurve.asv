@@ -20,13 +20,18 @@ RLsetting_list = {'geo';
     'georeduced';
     'egoLRGradreduced';
     'egoDirLRGradreduced';
-    'egolimitedreduced',
-    'transfer_exp'};
-policies = struct('name',RLsetting_list,'count',0,'folder_name',[],'training_length',[],'reward_final',[],'rewards',[],'converge_time',[],'timesteps',[]);
+    'egolimitedreduced';
+    'transfer_exp';
+    'egoDirLRGradCFD'};
+policies = struct('name',RLsetting_list,'count',0,'folder_name',[],'training_length',[],'reward_final',[],'rewards',[],'converge_time',[],'timesteps',[],'grading',[]);
 all_content = dir(root_dir);
 for i = 1:length(all_content)
     for l = 1:length(RLsetting_list)
-        if startsWith(all_content(i).name, RLsetting_list{l}) && ~isnan(str2double(all_content(i).name(length(RLsetting_list{l})+1:end)))
+        if isfile([root_dir all_content(i).name]) && endsWith(all_content(i).name, [RLsetting_list{l} '_grade.txt'])
+            t = readtable([root_dir all_content(i).name]);
+            policies(l).grading = t.successRate;
+            break;
+        elseif startsWith(all_content(i).name, RLsetting_list{l}) && ~isnan(str2double(all_content(i).name(length(RLsetting_list{l})+1:end)))
             policies(l).count = policies(l).count + 1;
             policies(l).folder_name{end+1} = all_content(i).name;
             break;
@@ -36,6 +41,7 @@ end
 %%
 average_window = 500;
 for l = 1:length(RLsetting_list)
+
     %     reward = zeros(length(t_q),n_end-n_start+1);
     %         convergence_time = zeros(n_end-n_start+1,1);
     for i = 1:policies(l).count
@@ -89,19 +95,41 @@ load('learning_data.mat')
 for l = 1:length(policies)
     figure;
     l
+    ax1 = subplot('Position',[0.12,0.46,0.48,0.48]);hold on;
+    ax2 = subplot('Position',[0.12,0.1,0.48,0.23]);
+    ax3 = subplot('Position',[0.65,0.46,0.25,0.48]);
+    ax4 = subplot('Position',[0.65,0.1,0.25,0.23]);
+    
+    ylabel(ax1,'rewards');
     for instance = 1:policies(l).count
         t_q = linspace(0,policies(l).timesteps(instance),101);
-        subplot(2,1,1),plot(t_q,policies(l).rewards{instance},'k','LineWidth',1);
-        hold on;
-        plot([policies(l).converge_time(instance) policies(l).converge_time(instance)],[0,200],'r--','LineWidth',0.5)
+        plot(ax1,t_q,policies(l).rewards{instance},'k','LineWidth',1);
+        plot(ax1,[policies(l).converge_time(instance) policies(l).converge_time(instance)],[0,200],'r--','LineWidth',0.5)
     end
-    max_timesteps = max(policies(l).timesteps);
-    xlim([0,max_timesteps]);
-    subplot(2,1,2);
-    histogram(policies(l).converge_time,linspace(0,max_timesteps,21));
-    xlim([0,max_timesteps]);
-    xlabel('time steps');
-    ylabel('count of convergence')
+%     max_timesteps = max(policies(l).timesteps);
+    xlim(ax1,[0,2e7]);
+    ylim(ax1,[-10,210]);
+    sgtitle(policies(l).name)
+    
+    histogram(ax2,policies(l).converge_time,linspace(0,2e7,21));
+    xlim(ax2,[0,2e7]);
+    xlabel(ax2,'time steps');
+    ylabel(ax2,'count of convergence')
+    
+    histogram(ax3,policies(l).reward_final,linspace(-10,210,23),'Orientation','horizontal');
+    ylim(ax3,[-10,210]);
+    xlabel(ax3,'count');
+    ylabel(ax3,'final mean reward');
+    
+    
+    ax2.FontSize = 12;
+    ax3.FontSize = 12;
+
+    plot(ax4,policies(l).grading*100,'^','MarkerSize',4);
+    ylabel(ax4,'grade');
+    set(ax3,'YAxisLocation','right')
+    set(ax4,'YAxisLocation','right')
+    exportgraphics(gcf,['./presentation0224/learning' policies(l).name '.pdf'],'Resolution',300)
 end
 
 %%

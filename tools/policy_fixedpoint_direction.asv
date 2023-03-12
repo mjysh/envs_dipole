@@ -24,21 +24,21 @@ policy_ego_reduced = @(o) obs_to_act(o, vracerNN_ego_reduced);
 vracerNN_geo_reduced = loadvracerNN(policy_path_geo_reduced,Nobs_geo,N1,N2,Naction);
 policy_geo_reduced = @(o) obs_to_act(o, vracerNN_geo_reduced);
 target = [-12, 2.15];
-%%
+%% manual tests
 % load('/home/yusheng/navigation_envs/dipole_new/tools/egoGradLR/trajectory2.mat', 'states')
 % load('/home/yusheng/navigation_envs/dipole_new/tools/bestpolicy_geo/trajectory12-12.mat','states','observations','reward','target','time')
-
-obs_geo = zeros(length(states),5);
-obs_ego = zeros(length(states),6);
-action_ego = zeros(length(time),1);
-action_geo = zeros(length(time),1);
-%%
-for i = 1:length(states)
-    obs_geo(i,:) = observation_geo(states(i,:),time(i),CFD,target);
-    obs_ego(i,:) = observation_ego(states(i,:),time(i),CFD,target);
-    %     [action_ego(i),~] = policy_ego(obs_ego(i,:));
-    [action_geo(i),~] = policy_geo(obs_geo(i,:));
-end
+% 
+% obs_geo = zeros(length(states),5);
+% obs_ego = zeros(length(states),6);
+% action_ego = zeros(length(time),1);
+% action_geo = zeros(length(time),1);
+%% manual tests
+% for i = 1:length(states)
+%     obs_geo(i,:) = observation_geo(states(i,:),time(i),CFD,target);
+%     obs_ego(i,:) = observation_ego(states(i,:),time(i),CFD,target);
+%     %     [action_ego(i),~] = policy_ego(obs_ego(i,:));
+%     [action_geo(i),~] = policy_geo(obs_geo(i,:));
+% end
 %%
 % perAngleTest(policy_geo,@observation_geo,CFD,-12.00,-3.3,0,target)
 % perAngleTest(policy_geo,@observation_geo,CFD,-8.1667,-2.5667,0,target)
@@ -78,11 +78,11 @@ for N = 1:10:420
 end
 %% fixed points of direction in trained policy
 t_cfd = 0;
-% fixed_ego = getTargetDirection(CFD, target, policy_ego,@observation_ego, t_cfd);
-% fixed_geo = getTargetDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
-% fixed_ego_reduced = getTargetDirection(CFD, target, policy_ego_reduced,@observation_ego, t_cfd);
-% fixed_geo_reduced = getTargetDirection(CFD, target, policy_geo_reduced,@observation_geo, t_cfd);
-% [X, Y, U, V] = getTargetDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
+fixed_ego = getConvergeDirection(CFD, target, policy_ego,@observation_ego, t_cfd);
+fixed_geo = getConvergeDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
+fixed_ego_reduced = getConvergeDirection(CFD, target, policy_ego_reduced,@observation_ego, t_cfd);
+fixed_geo_reduced = getConvergeDirection(CFD, target, policy_geo_reduced,@observation_geo, t_cfd);
+[X, Y, U, V] = getConvergeDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
 arrow_scale_f = 0.8;
 %% reduced-order ego
 figure('Position',[965 687 1061 635]);
@@ -183,7 +183,85 @@ end
 
 end
 
-function result = getTargetDirection(CFD, target, policy,state_to_obs, time)
+function result = getConvergeDirection(CFD, target, policy,state_to_obs, time)
+bound_left = -23.5;
+bound_right = -0.5;
+bound_up = 5.5;
+bound_down = -5.5;
+[X,Y] = meshgrid(linspace(bound_left,bound_right,31), linspace(bound_down,bound_up,16));
+U = zeros(size(X))*nan;
+V = zeros(size(X))*nan;
+U_tot = zeros(size(X))*nan;
+V_tot = zeros(size(X))*nan;
+U_multi = zeros(1000,1);
+V_multi = zeros(1000,1);
+X_multi = zeros(1000,1);
+Y_multi = zeros(1000,1);
+n_multi = zeros(1000,1);
+for m = 1:size(X,1)
+    for n = 1:size(X,2)
+        x = X(m,n);
+        y = Y(m,n);
+        test = [x,y,0];
+        orts = -pi:pi/360:pi;
+        %         action_geo_angle = zeros(length(orts),1);
+        action_angle = zeros(length(orts),1);
+        for i = 1:length(orts)
+            test(3) = orts(i);
+            %             obs_geo = observation_geo(test,0,CFD,target);
+            obs = state_to_obs(test,time,CFD,target);
+            %             [action_geo_angle(i),~] = policy_geo(obs_geo);
+            [action_angle(i),~] = policy(obs);
+        end
+        %         zeros_geo = find(action_geo_angle(1:end-1).*action_geo_angle(2:end) < 0 & action_geo_angle(1:end-1) > 0);
+        roots = find(action_angle(1:end-1).*action_angle(2:end) < 0 & action_angle(1:end-1) > 0);
+        %         if (isempty(zeros_geo))
+        %             fprintf('not found at %4.2f, %4.2f\n',x,y)
+        %         elseif (length(zeros_geo) == 1)
+        %             ang = mean(orts(zeros_geo:zeros_geo+1));
+        %             U(m,n) = cos(ang);
+        %             V(m,n) = sin(ang);
+        %         else
+        %             fprintf('multiple values (%4.2f) at %4.2f, %4.2f\n',length(zeros_geo), x,y)
+        %         end
+        if (isempty(roots))
+            fprintf('not found at %4.2f, %4.2f\n',x,y)
+        elseif (length(roots) == 1)
+            ang = mean(orts(roots:roots+1));
+            U(m,n) = cos(ang)*0.8;
+            V(m,n) = sin(ang)*0.8;
+            [flowU, flowV, ~]= adapt_time_interp(CFD,time,x,y);
+            U_tot(m,n) = U(m,n) + flowU;
+            V_tot(m,n) = V(m,n) + flowV;
+        else
+            fprintf('multiple values (%4.2f) at %4.2f, %4.2f\n',length(roots), x,y)
+            for k = 1:length(roots)
+                n_multi = n_multi + 1;
+                X_multi(n_multi) = x;
+                Y_multi(n_multi) = y;
+                ang = mean(orts(roots(k):roots(k)+1));
+                U_multi(n_multi) = cos(ang)*0.8;
+                V_multi(n_multi) = sin(ang)*0.8;
+            end
+        end
+    end
+end
+X_multi = X_multi(1:n_multi);
+Y_multi = Y_multi(1:n_multi);
+U_multi = U_multi(1:n_multi);
+V_multi = V_multi(1:n_multi);
+result.X = X;
+result.Y = Y;
+result.U = U;
+result.V = V;
+result.Utot = U_tot;
+result.Vtot = V_tot;
+result.X_multi = X_multi;
+result.Y_multi = Y_multi;
+result.U_multi = U_multi;
+result.V_multi = V_multi;
+end
+function result = getConvergeDirection_reduced(target, policy,state_to_obs, time)
 bound_left = -23.5;
 bound_right = -0.5;
 bound_up = 5.5;

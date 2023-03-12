@@ -19,20 +19,31 @@ range = [0,2*pi];
 targetX = -12;
 targetY = 2.15;
 policy_name = 'geo3';
-[success_geo, is_trained_geo, totTime_geo] = test_result_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+[success_geo, is_trained_geo, totTime_geo] = test_varySwimmer_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
 %%
 policy_name = 'egoLRGrad1';
-[success_ego, is_trained_ego, totTime_ego] = test_result_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+% [success_ego, is_trained_ego, totTime_ego] = test_varySwimmer_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+swimmerX = -12;
+swimmerY = -2.15;
+env = 'ego2sensorLRGradCFD';
+[success_ego, is_trained_ego, totTime_ego] = test_varyTarget_plot(source, env,policy_name, n_angle,ang_start,ang_end, swimmerX, swimmerY);
+%%
+policy_name = 'geo13';
+% [success_ego, is_trained_ego, totTime_ego] = test_varySwimmer_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+swimmerX = -12;
+swimmerY = -2.15;
+env = 'geo1sensorCFD';
+[success_ego, is_trained_ego, totTime_ego] = test_varyTarget_plot(source, env,policy_name, n_angle,ang_start,ang_end, swimmerX, swimmerY);
 %%
 targetX = -12;
 targetY = 2.15;
 % policy_name = 'georeduced1';
 % env = 'georeduced_widebound';
-% policy_name = 'egoLRGradreduced1';
-% env = 'egoLRGradreduced_widebound';
-policy_name = 'egoDirLRGradreduced3';
-env = 'egoDirLRGradreduced_widebound';
-[success_geo, is_trained_geo, totTime_geo] = test_result_plot(source, env, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+policy_name = 'egoLRGrad1';
+env = 'ego2sensorLRGradCFD';
+% policy_name = 'egoDirLRGradreduced3';
+% env = 'egoDirLRGradreduced_widebound';
+[success_geo, is_trained_geo, totTime_geo] = test_varySwimmer_plot(source, env, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
 %%
 rewardX = -8;
 policy_name = 'sourceseeking_reduced1';
@@ -65,7 +76,7 @@ figure;
 colormap(c);
 colorbar
 %%
-function [success, is_trained, totTime] = test_result_plot(source, env,policy_name, n_angle,ang_start,ang_end, targetX, targetY)
+function [success, is_trained, totTime] = test_varySwimmer_plot(source, env,policy_name, n_angle,ang_start,ang_end, targetX, targetY)
  load([source policy_name '/success_region' num2str(targetX) '_' num2str(targetY) '_' env '.mat'], ...
     'reward','totTime','initX','initY','initTheta','target')
 assert(targetX == target(1));
@@ -121,7 +132,7 @@ cmap = cbrewer('seq','YlGn',400,'linear');
 colormap(cmap)
 
 x = initX(1:n_angle:end);y = initY(1:n_angle:end);
-s = scatter(x,y,24,sr,'filled');
+s = scatter(x(sr>0),y(sr>0),24,sr(sr>0),'filled');
 axis equal;
 colorbar('Location','westoutside')
 xlim([min(min(initX),-23.5),max(max(initX),0)]);
@@ -146,7 +157,7 @@ end
 plot(targetX,targetY,'p',Color=[50/255,100/255,50/255]);
 title([replace(policy_name,'_',' ') ', ' num2str(sr_overall)]);
 cmap = cbrewer('seq','BuPu',400,'linear');
-colormap(cmap)
+colormap(flipud(cmap))
 x = initX(1:n_angle:end);y = initY(1:n_angle:end);
 s = scatter(x,y,24,tc,'filled');
 axis equal;
@@ -158,6 +169,102 @@ axis off
 the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
 exportgraphics(gcf,['./savedFigs/' policy_name '_' num2str(targetX) '_' num2str(targetY) '_timeconsumption.eps'])
+
+end
+%%
+function [success, is_trained, totTime] = test_varyTarget_plot(source, env,policy_name, n_angle,ang_start,ang_end, swimmerX, swimmerY)
+ load([source policy_name '/success_region_varytarget_' num2str(swimmerX) '_' num2str(swimmerY) '_' env '.mat'], ...
+    'reward','totTime','initX','initY','initTheta','targetX','targetY')
+assert(swimmerX == initX);
+assert(swimmerY == initY);
+
+% initX = initX(selected);
+% initY = initY(selected);
+% initTheta = initTheta(selected);
+% reward = reward(selected);
+% totTime = totTime(selected);
+
+testN = length(targetX);
+
+sr = zeros(1,testN/n_angle);
+tc = zeros(1,testN/n_angle);
+
+success = reward>50;
+totTime(~success) = max(totTime);
+
+range = ang_end - ang_start + 1;
+for i = 1:n_angle:testN
+    %     success = reward(i:i+n_angle-1)>50;
+    %     sr(i) = sum(success)/n_angle;
+    list = ang_start:ang_end;
+    list(list<1) = list(list<1) + n_angle;
+    success_loc = reward(i-1+list)>50;
+    sr((i-1)/n_angle+1) = sum(success_loc)/range;
+
+    t_list = totTime(list+i-1);
+    tc((i-1)/n_angle+1) = mean(t_list(t_list<max(totTime)));
+end
+
+
+figure('Position',[960 848 640 284]);
+if contains(env,'reduced')
+    lam = 4;
+    A = 0.3;
+    vortexUpX = mod(24,lam)-24:lam:0;
+    vortex_up = plot(vortexUpX,A*ones(size(vortexUpX)),'r.','MarkerSize',24); hold on
+    vortexDownX = mod(24+lam/2,lam)-24:lam:0;
+    vortex_down = plot(vortexDownX,-A*ones(size(vortexDownX)),'b.','MarkerSize',24);
+else
+    [bg,map] = imread("movie2000.png","png");hold on;
+    image([-24,8],[8,-8],ind2rgb(bg,map));
+end
+plot(swimmerX,swimmerY,'p',Color=[50/255,100/255,50/255]);
+sr_overall = mean(success);
+is_trained = ((targetX + 12).^2 + (targetY - 2.15).^2 <= 4);
+sr_trained = mean(success(is_trained));
+sr_untrained = mean(success(~is_trained));
+title([replace(policy_name,'_',' ') ', untrained:' num2str(100*sr_untrained,'%.2f') '\%, trained:' num2str(100*sr_trained,'%0.2f') '\%']);
+cmap = cbrewer('seq','YlGn',400,'linear');
+colormap(cmap)
+
+x = targetX(1:n_angle:end);y = targetY(1:n_angle:end);
+s = scatter(x(sr>0),y(sr>0),24,sr(sr>0),'filled');
+axis equal;
+colorbar('Location','westoutside')
+xlim([min(min(targetX),-23.5),max(max(targetX),0)]);
+ylim([min(min(targetY),-6),max(max(targetY),6)]);
+axis off
+the = 0:pi/200:pi*2;
+plot(-12+2*cos(the),-2.15+2*sin(the),'k');
+exportgraphics(gcf,['./savedFigs/' policy_name 'varytarget_' num2str(swimmerX) '_' num2str(swimmerY) '_successrate.eps'])
+
+figure('Position',[960 848 640 284]);
+if contains(env,'reduced')
+    lam = 4;
+    A = 0.3;
+    vortexUpX = mod(24,lam)-24:lam:0;
+    vortex_up = plot(vortexUpX,A*ones(size(vortexUpX)),'r.','MarkerSize',24); hold on
+    vortexDownX = mod(24+lam/2,lam)-24:lam:0;
+    vortex_down = plot(vortexDownX,-A*ones(size(vortexDownX)),'b.','MarkerSize',24);
+else
+    [bg,map] = imread("movie2000.png","png");hold on;
+    image([-24,8],[8,-8],ind2rgb(bg,map));
+end
+plot(swimmerX,swimmerY,'p',Color=[50/255,100/255,50/255]);
+title([replace(policy_name,'_',' ') ', ' num2str(sr_overall)]);
+cmap = cbrewer('seq','BuPu',400,'linear');
+colormap(flipud(cmap))
+x = targetX(1:n_angle:end);y = targetY(1:n_angle:end);
+s = scatter(x,y,24,tc,'filled');
+axis equal;
+caxis([0,1000]);
+colorbar('Location','westoutside')
+xlim([min(min(targetX),-23.5),max(max(targetX),0)]);
+ylim([min(min(targetY),-6),max(max(targetY),6)]);
+axis off
+the = 0:pi/200:pi*2;
+plot(-12+2*cos(the),-2.15+2*sin(the),'k');
+exportgraphics(gcf,['./savedFigs/' policy_name 'varytarget_' num2str(swimmerX) '_' num2str(swimmerY) '_timeconsumption.eps'])
 
 end
 %%
@@ -223,7 +330,7 @@ figure('Position',[960 848 640 284]);
 image([-24,8],[8,-8],ind2rgb(bg,map));
 title([replace(policy_name,'_',' ') ', ' num2str(sr_overall)]);
 cmap = cbrewer('seq','BuPu',400,'linear');
-colormap(cmap)
+colormap(flipud(cmap))
 x = initX(1:n_angle:end);y = initY(1:n_angle:end);
 s = scatter(x,y,24,tc,'filled');
 axis equal;
@@ -268,7 +375,7 @@ title([replace(policy_name,'_',' ') ', ' num2str(sum(success)/length(initX))]);
 % p = plot([initX(i), initX(i)+0.3*cos(initTheta(i))]-8, [initY(i), initY(i) + 0.3*sin(initTheta(i))],'Color',[reward(i),0,0],'LineWidth',1);
 % end
 cmap = cbrewer('seq','BuPu',400,'linear');
-colormap(cmap)
+colormap(flipud(cmap))
 % imagesc([min(initX),max(initX)],[min(initY),max(initY)],reshape(tc,length(unique(initY)),[]),'AlphaData',0.8);
 x = initX(1:n_angle:end);y = initY(1:n_angle:end);
 s = scatter(x,y,24,tc,'filled');
