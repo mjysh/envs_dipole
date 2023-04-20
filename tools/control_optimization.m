@@ -24,7 +24,7 @@ go(path,'egograd12-12randtest2', CFD);
 % go(path,'ego2', CFD);
 %%
 function go(path,savename, CFD)
-load(['/home/yusheng/navigation_envs/dipole_new/plotTools/' path], 'states','time','target')
+load(['/home/yusheng/navigation_envs/dipole_new/tools/' path], 'states','time','target')
 options = optimoptions("fmincon",'Display','iter-detailed','MaxFunctionEvaluations',1e8, ...
     'MaxIterations',1e4,'Algorithm','interior-point', ...
     'PlotFcn',@(x,optimValues,state,varargin) optimplottraj(savename,x,optimValues,state,varargin));

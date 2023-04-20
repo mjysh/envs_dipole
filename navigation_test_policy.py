@@ -505,7 +505,9 @@ def grade_policy(args):
             "trajX": x_history,
             "trajY": y_history,
             "trajTheta": theta_history,
-            "target":init_target
+            "target":init_target,
+            "observation":obs_history,
+            "action":action_history
             }
         from scipy.io import savemat
         savemat(policy_path+f"/grading_results_{settings}.mat", mdic, oned_as='row', do_compression=True)
@@ -544,7 +546,7 @@ def test(args):
 
     n_episodes = 1          # num of episodes to run
     max_timesteps = args.max_timesteps    # max timesteps in one episode
-    render = True           # render the environment
+    render = False           # render the environment
     save_gif = False        # png images are saved in gif folder
     
     
@@ -553,8 +555,9 @@ def test(args):
     obs_history = np.zeros((obs_dim,max_timesteps))
     action_history = np.zeros((max_timesteps))
     ep_reward = 0
-    env = wrappers.Monitor(env, './Movies/test_single',force = True)
-    obs = env.reset(position = initPos, target = target_pos, init_time = None)
+    if render:
+        env = wrappers.Monitor(env, './Movies/test_single',force = True)
+    obs = env.reset(position = initPos, target = target_pos, init_time = 0)
     initPos = env.pos
     env.done = False
     for t in range(max_timesteps):
@@ -583,13 +586,13 @@ def test(args):
     mdic = {"initPos": initPos,
             "reward": ep_reward,
             "totTime": t+1,
-            "trajectory": pos_history,
-            "observation": obs_history,
+            "trajectory": pos_history[:,:t+1],
+            "observation": obs_history[:,:t+1],
             "target": target_pos,
-            "action": action_history
+            "action": action_history[:t+1]
             }
     from scipy.io import savemat
-    savemat(policy_path+f"/random_test_data_{settings}.mat", mdic, oned_as='row', do_compression=True)
+    savemat(policy_path+f"/single_test_data_{settings}.mat", mdic, oned_as='row', do_compression=True)
 #        import matplotlib.pyplot as plt
 #        from matplotlib import rc
 #        import matplotlib as mpl

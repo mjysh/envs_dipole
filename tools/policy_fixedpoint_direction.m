@@ -9,10 +9,12 @@ Naction = 1;
 N1 = 128;
 N2 = 128;
 NNsize = [N1, N2];
-policy_path_ego = '/home/yusheng/smarties/apps/dipole_adapt/paper/egoLRGrad1';
-policy_path_geo = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/geo3';
-policy_path_ego_reduced = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/egoLRGradreduced1';
-policy_path_geo_reduced = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/geo1sensorreduced1';
+root_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/';
+policy_path_ego = [root_dir 'egoLRGrad1'];
+policy_path_geo = [root_dir 'geo13'];
+policy_path_ego_reduced = [root_dir 'egoLRGradreduced1'];
+policy_path_geo_reduced = [root_dir 'georeduced1'];
+%%
 CFD = load('CFDData.mat');
 %% load policy
 vracerNN_ego = loadvracerNN(policy_path_ego,Nobs_ego,N1,N2,Naction);
@@ -40,10 +42,10 @@ target = [-12, 2.15];
 %     [action_geo(i),~] = policy_geo(obs_geo(i,:));
 % end
 %%
-% perAngleTest(policy_geo,@observation_geo,CFD,-12.00,-3.3,0,target)
-% perAngleTest(policy_geo,@observation_geo,CFD,-8.1667,-2.5667,0,target)
-perAngleTest(policy_ego,@observation_ego,CFD,-12.00,-3.3,0,target)
-perAngleTest(policy_ego,@observation_ego,CFD,-8.9333,2.5667,0,target)
+perAngleTest(policy_geo,@observation_geo,CFD,-12.00,-3.3,0,target)
+perAngleTest(policy_geo,@observation_geo,CFD,-15.0667,1.8333,0,target)
+% perAngleTest(policy_ego,@observation_ego,CFD,-12.00,-3.3,0,target)
+% perAngleTest(policy_ego,@observation_ego,CFD,-8.9333,2.5667,0,target)
 %%
 figure, plot(action_ego);
 hold on;
@@ -77,12 +79,12 @@ for N = 1:10:420
     end
 end
 %% fixed points of direction in trained policy
-t_cfd = 0;
-fixed_ego = getConvergeDirection(CFD, target, policy_ego,@observation_ego, t_cfd);
-fixed_geo = getConvergeDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
-fixed_ego_reduced = getConvergeDirection(CFD, target, policy_ego_reduced,@observation_ego, t_cfd);
-fixed_geo_reduced = getConvergeDirection(CFD, target, policy_geo_reduced,@observation_geo, t_cfd);
-[X, Y, U, V] = getConvergeDirection(CFD, target, policy_geo,@observation_geo, t_cfd);
+time = 0;
+% fixed_ego = getConvergeDirection(CFD, target, policy_ego,@observation_ego, time);
+% fixed_geo = getConvergeDirection(CFD, target, policy_geo,@observation_geo, time);
+fixed_ego_reduced = getConvergeDirection_reduced(target, policy_ego_reduced,@observation_reduced_ego, time);
+fixed_geo_reduced = getConvergeDirection_reduced(target, policy_geo_reduced,@observation_reduced_geo, time);
+% [X, Y, U, V] = getConvergeDirection(CFD, target, policy_geo,@observation_geo, time);
 arrow_scale_f = 0.8;
 %% reduced-order ego
 figure('Position',[965 687 1061 635]);
@@ -132,7 +134,7 @@ xlim([-23.5,0]);
 ylim([-6,6]);
 %% CFD ego
 figure('Position',[965 687 1061 635]);
-[bg,map] = imread(['/home/yusheng/CFDadapt/Movie_visit/movie' num2str(t_cfd*20,'%04.f') '.png'],"png");hold on;
+[bg,map] = imread(['/home/yusheng/CFDadapt/Movie_visit/movie' num2str(time*20,'%04.f') '.png'],"png");hold on;
 image([-24,8],[8,-8],ind2rgb(bg,map));
 quiver(fixed_ego.X,fixed_ego.Y,fixed_ego.U*arrow_scale_f,fixed_ego.V*arrow_scale_f,'AutoScale',0) % single stable fixed points
 axis equal;
@@ -148,7 +150,7 @@ xlim([-23.5,0]);
 ylim([-6,6]);
 %% CFD geo
 figure('Position',[965 687 1061 635]);
-[bg,map] = imread(['/home/yusheng/CFDadapt/Movie_visit/movie' num2str(t_cfd*20,'%04.f') '.png'],"png");hold on;
+[bg,map] = imread(['/home/yusheng/CFDadapt/Movie_visit/movie' num2str(time*20,'%04.f') '.png'],"png");hold on;
 image([-24,8],[8,-8],ind2rgb(bg,map));
 quiver(fixed_geo.X,fixed_geo.Y,fixed_geo.U*arrow_scale_f,fixed_geo.V*arrow_scale_f,'AutoScale',0) % single stable fixed points
 axis equal;
@@ -282,33 +284,21 @@ for m = 1:size(X,1)
         y = Y(m,n);
         test = [x,y,0];
         orts = -pi:pi/360:pi;
-        %         action_geo_angle = zeros(length(orts),1);
         action_angle = zeros(length(orts),1);
         for i = 1:length(orts)
             test(3) = orts(i);
-            %             obs_geo = observation_geo(test,0,CFD,target);
-            obs = state_to_obs(test,time,CFD,target);
-            %             [action_geo_angle(i),~] = policy_geo(obs_geo);
+            obs = state_to_obs(test,time,target);
             [action_angle(i),~] = policy(obs);
         end
-        %         zeros_geo = find(action_geo_angle(1:end-1).*action_geo_angle(2:end) < 0 & action_geo_angle(1:end-1) > 0);
         roots = find(action_angle(1:end-1).*action_angle(2:end) < 0 & action_angle(1:end-1) > 0);
-        %         if (isempty(zeros_geo))
-        %             fprintf('not found at %4.2f, %4.2f\n',x,y)
-        %         elseif (length(zeros_geo) == 1)
-        %             ang = mean(orts(zeros_geo:zeros_geo+1));
-        %             U(m,n) = cos(ang);
-        %             V(m,n) = sin(ang);
-        %         else
-        %             fprintf('multiple values (%4.2f) at %4.2f, %4.2f\n',length(zeros_geo), x,y)
-        %         end
+
         if (isempty(roots))
             fprintf('not found at %4.2f, %4.2f\n',x,y)
         elseif (length(roots) == 1)
             ang = mean(orts(roots:roots+1));
             U(m,n) = cos(ang)*0.8;
             V(m,n) = sin(ang)*0.8;
-            [flowU, flowV, ~]= adapt_time_interp(CFD,time,x,y);
+            [flowU, flowV]= reducedFlow([x,y],time);
             U_tot(m,n) = U(m,n) + flowU;
             V_tot(m,n) = V(m,n) + flowV;
         else

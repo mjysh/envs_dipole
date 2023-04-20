@@ -10,37 +10,42 @@ source = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/';
 %% select colors
 
 %% success rate
-range = [0,2*pi];
-% for k = 1:12
-% ang_start = 3*k-3;
-% ang_end = 3*k-1;
-
-
-targetX = -12;
-targetY = 2.15;
-policy_name = 'geo3';
-[success_geo, is_trained_geo, totTime_geo] = test_varySwimmer_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
 %%
-policy_name = 'egoLRGrad1';
+% policy_name = 'egoLRGrad1';
+policy_name = 'egoLRGradreduced1';
 % [success_ego, is_trained_ego, totTime_ego] = test_varySwimmer_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
 swimmerX = -12;
 swimmerY = -2.15;
-env = 'ego2sensorLRGradCFD';
+% env = 'ego2sensorLRGradCFD';
+env = 'egoLRGradreduced';
 [success_ego, is_trained_ego, totTime_ego] = test_varyTarget_plot(source, env,policy_name, n_angle,ang_start,ang_end, swimmerX, swimmerY);
 %%
 policy_name = 'geo13';
 % [success_ego, is_trained_ego, totTime_ego] = test_varySwimmer_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+targetX = -12;
+targetY = 2.15;
 swimmerX = -12;
 swimmerY = -2.15;
 env = 'geo1sensorCFD';
+[success_geo, is_trained_geo, totTime_geo] = test_varySwimmer_plot(source, env, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+[success_ego, is_trained_ego, totTime_ego] = test_varyTarget_plot(source, env,policy_name, n_angle,ang_start,ang_end, swimmerX, swimmerY);
+%%
+policy_name = 'egoLRGrad1';
+% [success_ego, is_trained_ego, totTime_ego] = test_varySwimmer_plot(source, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
+targetX = -12;
+targetY = 2.15;
+swimmerX = -12;
+swimmerY = -2.15;
+env = 'ego2sensorLRGradCFD';
+[success_geo, is_trained_geo, totTime_geo] = test_varySwimmer_plot(source, env, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
 [success_ego, is_trained_ego, totTime_ego] = test_varyTarget_plot(source, env,policy_name, n_angle,ang_start,ang_end, swimmerX, swimmerY);
 %%
 targetX = -12;
 targetY = 2.15;
 % policy_name = 'georeduced1';
 % env = 'georeduced_widebound';
-policy_name = 'egoLRGrad1';
-env = 'ego2sensorLRGradCFD';
+policy_name = 'egoLRGradreduced1';
+env = 'egoLRGradreduced_widebound';
 % policy_name = 'egoDirLRGradreduced3';
 % env = 'egoDirLRGradreduced_widebound';
 [success_geo, is_trained_geo, totTime_geo] = test_varySwimmer_plot(source, env, policy_name, n_angle,ang_start,ang_end,targetX,targetY);
@@ -140,7 +145,7 @@ ylim([min(min(initY),-6),max(max(initY),6)]);
 axis off
 the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
-exportgraphics(gcf,['./savedFigs/' policy_name '_' num2str(targetX) '_' num2str(targetY) '_successrate.eps'])
+exportgraphics(gcf,['./savedFigs/' policy_name '_' num2str(targetX) '_' num2str(targetY) env  '_successrate.eps'])
 
 figure('Position',[960 848 640 284]);
 if contains(env,'reduced')
@@ -168,7 +173,7 @@ ylim([min(min(initY),-6),max(max(initY),6)]);
 axis off
 the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
-exportgraphics(gcf,['./savedFigs/' policy_name '_' num2str(targetX) '_' num2str(targetY) '_timeconsumption.eps'])
+exportgraphics(gcf,['./savedFigs/' policy_name '_' num2str(targetX) '_' num2str(targetY) env '_timeconsumption.eps'])
 
 end
 %%
@@ -236,7 +241,7 @@ ylim([min(min(targetY),-6),max(max(targetY),6)]);
 axis off
 the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
-exportgraphics(gcf,['./savedFigs/' policy_name 'varytarget_' num2str(swimmerX) '_' num2str(swimmerY) '_successrate.eps'])
+exportgraphics(gcf,['./savedFigs/' policy_name 'varytarget_' num2str(swimmerX) '_' num2str(swimmerY) env '_successrate.eps'])
 
 figure('Position',[960 848 640 284]);
 if contains(env,'reduced')
@@ -264,7 +269,7 @@ ylim([min(min(targetY),-6),max(max(targetY),6)]);
 axis off
 the = 0:pi/200:pi*2;
 plot(-12+2*cos(the),-2.15+2*sin(the),'k');
-exportgraphics(gcf,['./savedFigs/' policy_name 'varytarget_' num2str(swimmerX) '_' num2str(swimmerY) '_timeconsumption.eps'])
+exportgraphics(gcf,['./savedFigs/' policy_name 'varytarget_' num2str(swimmerX) '_' num2str(swimmerY) env '_timeconsumption.eps'])
 
 end
 %%

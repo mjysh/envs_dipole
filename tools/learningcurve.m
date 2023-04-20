@@ -125,13 +125,29 @@ for l = 1:length(policies)
     ax2.FontSize = 12;
     ax3.FontSize = 12;
 
-    plot(ax4,policies(l).grading*100,'^','MarkerSize',4);
+    plot(ax4,policies(l).grading*100,'b^','MarkerSize',4);
     ylabel(ax4,'grade');
+    ylim([0,100]);
     set(ax3,'YAxisLocation','right')
     set(ax4,'YAxisLocation','right')
-    exportgraphics(gcf,['./presentation0224/learning' policies(l).name '.pdf'],'Resolution',300)
+    exportgraphics(gcf,['./savedFigs/learning' policies(l).name '.eps'],'ContentType','vector')
+end
+%%
+grade_mean = zeros(length(policies),1);
+grade_std = zeros(length(policies),1);
+grade_best = zeros(length(policies),1);
+grade_worst = zeros(length(policies),1);
+policy_count = zeros(length(policies),1);
+for l = 1:length(policies)-2
+    grade_mean(l) = 100*mean(policies(l).grading);
+    grade_std(l) = 100*std(policies(l).grading);
+    policy_count(l) = policies(l).count;
+    grade_best(l) = 100*max(policies(l).grading);
+    grade_worst(l) = 100*min(policies(l).grading);
 end
 
+trainingStatistics = table(RLsetting_list,policy_count, grade_best,grade_worst,grade_mean,grade_std);
+writetable(trainingStatistics)
 %%
 train_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/egoLRGrad';
 train_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/georeduced';

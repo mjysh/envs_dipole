@@ -42,11 +42,13 @@ class DipoleSingleEnv(gym.Env):
             'CFD_flipped': self.__flowVK_CFD_flipped
             }
         obs_dict = {
+            'MDP': (self._get_obs_mdp, 6),
             'geoOneSensor': (self._get_obs_geo, 5),
             'geoFlowBlind': (self._get_obs_geoflowblind, 3),
             'egoOneSensor': (self._get_obs_ego1, 4),
             'egoOneSensorVor': (self._get_obs_ego1vor, 5),
             'egoTwoSensorLRGrad': (self._get_obs_ego2lrgrad, 6),
+            'egoTwoSensorFBGrad': (self._get_obs_ego2fbgrad, 6),
             'egoLRGradMemory': (self._get_obs_ego2lrgradmemory, 12),
             'egoTwoSensorLR': (self._get_obs_ego2lr, 6),
             'egoTwoSensorLRMagGrad': (self._get_obs_ego2lrmaggrad, 5),
@@ -74,7 +76,7 @@ class DipoleSingleEnv(gym.Env):
             # 'egoDirOnlyLRGrad': (self._get_obs_egodirlrgrad, 6),
             # 'egoLRGradFlowDirOnly': (self._get_obs_ego2lrgradflowdironly, 5),
             # 'egoLRGradOnlyFullMemory': (self._get_obs_ego2lrgradonlyfullmemory, 8),
-            # 'egoTwoSensorFBGrad': (self._get_obs_ego2fbgrad, 6),
+            # 
             # 'egoTwoSensorLRDir': (self._get_obs_ego2lrdir, 5),
             # 'egoOneSensorDir': (self._get_obs_ego1dir, 3)
             }
@@ -253,30 +255,30 @@ class DipoleSingleEnv(gym.Env):
         uVK += self.bgflow
         oVK = 0
         return uVK,vVK,oVK
-    def __gradVK_reduced(self, pos, t):
-        A = self.A
-        Gamma = self.Gamma
-        lam = self.lam
-        U = Gamma/2/lam*np.tanh(2*np.pi*A/lam)+self.bgflow
+    # def __gradVK_reduced(self, pos, t):
+    #     A = self.A
+    #     Gamma = self.Gamma
+    #     lam = self.lam
+    #     U = Gamma/2/lam*np.tanh(2*np.pi*A/lam)+self.bgflow
 
-        D = Gamma/2/lam
-        C = U*t
-        x = pos[0]
-        y = pos[1]
-        singular1 = np.tan(np.pi*(x + 1j*y + 1j*A - t*U)/lam)
-        singular2 = np.tan(np.pi*(x + 1j*y-lam/2-1j*A - t*U)/lam)
+    #     D = Gamma/2/lam
+    #     C = U*t
+    #     x = pos[0]
+    #     y = pos[1]
+    #     singular1 = np.tan(np.pi*(x + 1j*y + 1j*A - t*U)/lam)
+    #     singular2 = np.tan(np.pi*(x + 1j*y-lam/2-1j*A - t*U)/lam)
 
-        if (abs(singular1) > 1e-3)  and (abs(singular2) > 1e-3):
-            dudx = (2*D*np.pi/lam)*np.sin(2*np.pi*(C-x)/lam)*\
-                                        (np.sinh(2*np.pi*(-A+y)/lam)/(np.cos(2*np.pi*(C-x)/lam)+np.cosh(2*np.pi*(-A+y)/lam))**2+
-                                         np.sinh(2*np.pi*(A+y)/lam)/(np.cos(2*np.pi*(C-x)/lam)-np.cosh(2*np.pi*(A+y)/lam))**2)
-            dudy = (2*D*np.pi/lam)*(np.cosh(2*np.pi*(-A+y)/lam)/(np.cos(np.pi*(2*C-2*x+lam)/lam)-np.cosh(2*np.pi*(-A+y)/lam))+
-                                    np.cosh(2*np.pi*(A+y)/lam)/(-np.cos(2*np.pi*(-C+x)/lam)+np.cosh(2*np.pi*(A+y)/lam))+
-                                    (np.sinh(2*np.pi*(-A+y)/lam))**2/(np.cos(np.pi*(2*C-2*x+lam)/lam)-np.cosh(2*np.pi*(-A+y)/lam))**2-
-                                    (np.sinh(2*np.pi*(A+y)/lam))**2/(np.cos(2*np.pi*(-C+x)/lam)-np.cosh(2*np.pi*(A+y)/lam))**2)
-        else:
-            dudx = dudy = 0
-        return dudx,dudy
+    #     if (abs(singular1) > 1e-3)  and (abs(singular2) > 1e-3):
+    #         dudx = (2*D*np.pi/lam)*np.sin(2*np.pi*(C-x)/lam)*\
+    #                                     (np.sinh(2*np.pi*(-A+y)/lam)/(np.cos(2*np.pi*(C-x)/lam)+np.cosh(2*np.pi*(-A+y)/lam))**2+
+    #                                      np.sinh(2*np.pi*(A+y)/lam)/(np.cos(2*np.pi*(C-x)/lam)-np.cosh(2*np.pi*(A+y)/lam))**2)
+    #         dudy = (2*D*np.pi/lam)*(np.cosh(2*np.pi*(-A+y)/lam)/(np.cos(np.pi*(2*C-2*x+lam)/lam)-np.cosh(2*np.pi*(-A+y)/lam))+
+    #                                 np.cosh(2*np.pi*(A+y)/lam)/(-np.cos(2*np.pi*(-C+x)/lam)+np.cosh(2*np.pi*(A+y)/lam))+
+    #                                 (np.sinh(2*np.pi*(-A+y)/lam))**2/(np.cos(np.pi*(2*C-2*x+lam)/lam)-np.cosh(2*np.pi*(-A+y)/lam))**2-
+    #                                 (np.sinh(2*np.pi*(A+y)/lam))**2/(np.cos(2*np.pi*(-C+x)/lam)-np.cosh(2*np.pi*(A+y)/lam))**2)
+    #     else:
+    #         dudx = dudy = 0
+    #     return dudx,dudy
     def __initialConfig(self,mode, init_num):
         # get the initial configuration of the fish
         ####################circular zone#######################
@@ -399,6 +401,11 @@ class DipoleSingleEnv(gym.Env):
 
         return self.obs()
     """A series of observations to choose from"""
+    def _get_obs_mdp(self):
+        """
+        everything needed!
+        """
+        return np.array([self.pos[0],self.pos[1],self.pos[2],self.target[0],self.target[1],self.time])
     def _get_obs_geo(self):
         """
         swimmer position, orientation and local flow field in lab frame
@@ -586,6 +593,32 @@ class DipoleSingleEnv(gym.Env):
         reldvdy = (relvL - relvR)/0.1
         
         return np.array([relx, rely, relu, relv, reldudy, reldvdy])
+    def _get_obs_ego2fbgrad(self):
+        """
+        egocentric swimmer position and local flow fields from 2 sensors located on the front and back of the swimmer
+        """
+        ort = angle_normalize(self.pos[-1])
+        dx = self.target[0] - self.pos[0]
+        dy = self.target[1] - self.pos[1]
+
+        relx = dx*np.cos(ort) + dy*np.sin(ort)
+        rely = -dx*np.sin(ort) + dy*np.cos(ort)
+
+        posFront = self.pos[0:2] + np.array([0.05*np.cos(ort), 0.05*np.sin(ort)])
+        posBack = np.array(self.pos[0:2])*2 - posFront
+        uVKF,vVKF,_ = self.flow(posFront,self.time)
+        uVKB,vVKB,_ = self.flow(posBack,self.time)
+        
+        reluF = uVKF*np.cos(ort) + vVKF*np.sin(ort)
+        relvF = -uVKF*np.sin(ort) + vVKF*np.cos(ort)
+        reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
+        relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
+
+        relu = (reluF+reluB)/2
+        relv = (relvF+relvB)/2
+        reldudx = (reluF - reluB)/0.1
+        reldvdx = (relvF - relvB)/0.1
+        return np.array([relx, rely, relu, relv, reldudx, reldvdx])
     def _get_obs_egolrgradonlynovision(self):
         """
         egocentric  lateral gradient
@@ -1028,26 +1061,7 @@ class DipoleSingleEnv(gym.Env):
     #     reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
     #     relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
     #     return np.array([relx,rely,reluF,relvF,reluB,relvB])
-    # def _get_obs_ego2fbgrad(self):
-    #     """
-    #     egocentric swimmer position and local flow fields from 2 sensors located on the front and back of the swimmer
-    #     """
-    #     ort = angle_normalize(self.pos[-1])
-    #     posFront = self.pos[0:2] + np.array([0.05*np.cos(ort), 0.05*np.sin(ort)])
-    #     posBack = np.array(self.pos[0:2])*2 - posFront
-    #     uVKF,vVKF,_ = self.flow(posFront,self.time)
-    #     uVKB,vVKB,_ = self.flow(posBack,self.time)
-        
-    #     dx = self.target[0] - self.pos[0]
-    #     dy = self.target[1] - self.pos[1]
-
-    #     relx = dx*np.cos(ort) + dy*np.sin(ort)
-    #     rely = -dx*np.sin(ort) + dy*np.cos(ort)
-    #     reluF = uVKF*np.cos(ort) + vVKF*np.sin(ort)
-    #     relvF = -uVKF*np.sin(ort) + vVKF*np.cos(ort)
-    #     reluB = uVKB*np.cos(ort) + vVKB*np.sin(ort)
-    #     relvB = -uVKB*np.sin(ort) + vVKB*np.cos(ort)
-    #     return np.array([relx, rely, (reluF + reluB)/2, (relvF + relvB)/2, (reluF - reluB)/0.1, (relvF - relvB)/0.1])
+    
     def _get_obs_ego4grad(self):
         """
         egocentric swimmer position and local flow field and lateral gradient
