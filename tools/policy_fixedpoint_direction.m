@@ -10,10 +10,10 @@ N1 = 128;
 N2 = 128;
 NNsize = [N1, N2];
 root_dir = '/home/yusheng/smarties/apps/dipole_adapt/paper_new/';
-policy_path_ego = [root_dir 'egoLRGrad1'];
-policy_path_geo = [root_dir 'geo13'];
-policy_path_ego_reduced = [root_dir 'egoLRGradreduced1'];
-policy_path_geo_reduced = [root_dir 'georeduced1'];
+policy_path_ego = [root_dir 'egoLRGrad13'];
+policy_path_geo = [root_dir 'geo3'];
+% policy_path_ego_reduced = [root_dir 'egoLRGradreduced6'];
+% policy_path_geo_reduced = [root_dir 'georeduced6'];
 %%
 CFD = load('CFDData.mat');
 %% load policy
@@ -80,10 +80,10 @@ for N = 1:10:420
 end
 %% fixed points of direction in trained policy
 time = 0;
-% fixed_ego = getConvergeDirection(CFD, target, policy_ego,@observation_ego, time);
-% fixed_geo = getConvergeDirection(CFD, target, policy_geo,@observation_geo, time);
-fixed_ego_reduced = getConvergeDirection_reduced(target, policy_ego_reduced,@observation_reduced_ego, time);
-fixed_geo_reduced = getConvergeDirection_reduced(target, policy_geo_reduced,@observation_reduced_geo, time);
+fixed_ego = getConvergeDirection(CFD, target, policy_ego,@observation_ego, time);
+fixed_geo = getConvergeDirection(CFD, target, policy_geo,@observation_geo, time);
+% fixed_ego_reduced = getConvergeDirection_reduced(target, policy_ego_reduced,@observation_reduced_ego, time);
+% fixed_geo_reduced = getConvergeDirection_reduced(target, policy_geo_reduced,@observation_reduced_geo, time);
 % [X, Y, U, V] = getConvergeDirection(CFD, target, policy_geo,@observation_geo, time);
 arrow_scale_f = 0.8;
 %% reduced-order ego

@@ -18,8 +18,14 @@ plot(-12+2*cos(the),-2.15+2*sin(the),'k');
 plot(-12+2*cos(the),2.15+2*sin(the),'k');
 % colorbar('Location','westoutside')
 %% grading results of egoLRGrad1
-policy_name = 'egoLRGrad1';
-load([root_dir policy_name '/grading_results_ego2sensorLRGradCFD.mat']);
+% policy_name = 'egoLRGrad1';
+% load([root_dir policy_name '/grading_results_ego2sensorLRGradCFD.mat']);
+policy_name = 'egoLRGradreduced1';
+env = 'egoLRGradreduced';
+% load([root_dir policy_name '/grading_results_' env '.mat']);
+% policy_name = 'georeduced1';
+% env = 'geo1sensorreduced';
+load([root_dir policy_name '/grading_results_' env '.mat']);
 %%
 % load([root_dir 'egoLRGrad1/grading_results_egoLRGradreduced.mat']);
 success = reward>50;
@@ -100,7 +106,7 @@ yticks(-4.15:2:-0.15)
 colorbar;
 clim([0,800])
 sgtitle(policy_name);
-exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name '_ratetime.eps'],'ContentType','vector')
+exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name env '_ratetime.eps'],'ContentType','vector')
 %%
 figure('Position',[705 13 886 1309]);
 obs_x = squeeze(observation(1,:,:)); obs_y = squeeze(observation(2,:,:));
@@ -155,9 +161,17 @@ h_obs.EdgeAlpha = 0;
 obs_dudy = squeeze(observation(5,:,:)); obs_dvdy = squeeze(observation(6,:,:));
 obs_dudy = obs_dudy(:); obs_dvdy = obs_dvdy(:);
 obs_dudy = obs_dudy(abs(obs_dudy)>0);obs_dvdy = obs_dvdy(abs(obs_dvdy)>0);
-dudybin = round((max(obs_dudy)-min(obs_dudy))/0.02);
-dvdybin = round((max(obs_dvdy)-min(obs_dvdy))/0.02);
-[hc_obs,xedges,yedges] = histcounts2(obs_dudy,obs_dvdy,[dudybin,dvdybin],'Normalization','pdf');
+limit_dudy = 2;
+limit_dvdy = 0.9;
+flag = abs(obs_dudy)<limit_dudy & abs(obs_dvdy)<limit_dvdy;
+obs_dudy = obs_dudy(flag);obs_dvdy = obs_dvdy(flag);
+% dudybin = round((max(obs_dudy)-min(obs_dudy))/0.02);
+% dvdybin = round((max(obs_dvdy)-min(obs_dvdy))/0.02);
+% dudybin = round(2*limit_dudy/0.02);
+% dvdybin = round(2*limit_dvdy/0.02);
+xedges = -limit_dudy:0.02:limit_dudy;
+yedges = -limit_dvdy:0.02:limit_dvdy;
+[hc_obs,xedges,yedges] = histcounts2(obs_dudy,obs_dvdy,xedges,yedges,'Normalization','pdf');
 [X,Y] = meshgrid(xedges,yedges); X = X'; Y= Y';
 hc_obs = [hc_obs zeros(size(hc_obs,1),1)];hc_obs = [hc_obs;zeros(1,size(hc_obs,2))];
 
@@ -165,8 +179,10 @@ ax=subplot(4,1,3);h_obs = pcolor(X,Y,hc_obs);
 % Z = ones(size(X));
 hold on, plot(X(hc_obs==0),Y(hc_obs==0),'k.','MarkerSize',2)
 axis equal;
-xlim([min(xedges),max(xedges)]);
-ylim([min(yedges),max(yedges)]);
+% xlim([min(xedges),max(xedges)]);
+% ylim([min(yedges),max(yedges)]);
+xlim([-limit_dudy,limit_dudy]);
+ylim([-limit_dvdy,limit_dvdy]);
 xlabel('$\partial u/\partial y$');ylabel('$\partial v/\partial y$');
 % xlim([-14,-10]);ylim([0.15,4.15]);
 % yticks(0.15:2:4.15)
@@ -182,11 +198,11 @@ xlabel('$\dot\theta$');ylabel('PDF');
 xlim([-4,4]);
 ylim([0, 1.5]);
 h_act(1).EdgeAlpha = 0;
-exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name '_obsact.eps'],'ContentType','vector')
+exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name env '_obsact.eps'],'ContentType','vector')
 %% grading results of geo13
 policy_name = 'geo13';
 load([root_dir policy_name '/grading_results_geo1sensorCFD.mat']);
-% load([root_dir 'egoLRGrad1/grading_results_egoLRGradreduced.mat']);
+%%
 success = reward>50;
 figure('position',[297 850 630 472]);
 sgtitle('egoLRGrad1')
@@ -265,7 +281,7 @@ yticks(-4.15:2:-0.15)
 colorbar;
 clim([0,800])
 sgtitle(policy_name);
-exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name '_ratetime.eps'],'ContentType','vector')
+exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name env '_ratetime.eps'],'ContentType','vector')
 %%
 figure('Position',[705 13 886 1309]);
 obs_x = squeeze(observation(1,:,:)); obs_y = squeeze(observation(2,:,:));
@@ -330,7 +346,7 @@ xlim([-4,4]);
 ylim([0, 1.5]);
 sgtitle(policy_name);
 h_act(1).EdgeAlpha = 0;
-exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name '_obsact.eps'],'ContentType','vector')
+exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name env '_obsact.eps'],'ContentType','vector')
 %% grade egoLRGradreduced1 in egoLRGradCFD
 policy_name = 'egoLRGradreduced1';
 load([root_dir policy_name '/grading_results_ego2sensorLRGradCFD.mat']);
@@ -613,11 +629,17 @@ obs_dudy = squeeze(observation(5,:,:)); obs_dvdy = squeeze(observation(6,:,:));
 obs_dudy = obs_dudy(:); obs_dvdy = obs_dvdy(:);
 flag = (abs(obs_dudy)+abs(obs_dvdy))>0;
 obs_dudy = obs_dudy(flag);obs_dvdy = obs_dvdy(flag);
-flag = abs(obs_dudy)<2.1 & abs(obs_dvdy)<0.9;
+limit_dudy = 2;
+limit_dvdy = 0.9;
+flag = abs(obs_dudy)<limit_dudy & abs(obs_dvdy)<limit_dvdy;
 obs_dudy = obs_dudy(flag);obs_dvdy = obs_dvdy(flag);
-dudybin = round((max(obs_dudy)-min(obs_dudy))/0.02);
-dvdybin = round((max(obs_dvdy)-min(obs_dvdy))/0.02);
-[hc_obs,xedges,yedges] = histcounts2(obs_dudy,obs_dvdy,[dudybin,dvdybin],'Normalization','pdf');
+% dudybin = round((max(obs_dudy)-min(obs_dudy))/0.02);
+% dvdybin = round((max(obs_dvdy)-min(obs_dvdy))/0.02);
+% dudybin = round(2*limit_dudy/0.02);
+% dvdybin = round(2*limit_dvdy/0.02);
+xedges = -limit_dudy:0.02:limit_dudy;
+yedges = -limit_dvdy:0.02:limit_dvdy;
+[hc_obs,xedges,yedges] = histcounts2(obs_dudy,obs_dvdy,xedges,yedges,'Normalization','pdf');
 [X,Y] = meshgrid(xedges,yedges); X = X'; Y= Y';
 hc_obs = [hc_obs zeros(size(hc_obs,1),1)];hc_obs = [hc_obs;zeros(1,size(hc_obs,2))];
 
@@ -625,8 +647,10 @@ ax=subplot(4,1,3);h_obs = pcolor(X,Y,hc_obs);
 % Z = ones(size(X));
 hold on, plot(X(hc_obs==0),Y(hc_obs==0),'k.','MarkerSize',2)
 axis equal;
-xlim([min(xedges),max(xedges)]);
-ylim([min(yedges),max(yedges)]);
+% xlim([min(xedges),max(xedges)]);
+% ylim([min(yedges),max(yedges)]);
+xlim([-limit_dudy,limit_dudy]);
+ylim([-limit_dvdy,limit_dvdy]);
 xlabel('$\partial u/\partial y$');ylabel('$\partial v/\partial y$');
 % xlim([-14,-10]);ylim([0.15,4.15]);
 % yticks(0.15:2:4.15)
@@ -637,8 +661,9 @@ h_obs.EdgeAlpha = 0;
 
 actions = 4*action(:);
 % subplot(2,2,4),h_act = histfit(action(abs(action)>0));
-subplot(4,1,4),h_act = histogram(actions(abs(actions)>0),'Normalization','probability');
+subplot(4,1,4),h_act = histogram(actions(abs(actions)>0),'Normalization','pdf');
 xlabel('$\dot\theta$');ylabel('PDF');
 xlim([-4,4]);
+ylim([0,1.5]);
 h_act(1).EdgeAlpha = 0;
 exportgraphics(gcf,['./savedFigs/grading_analysis_' policy_name '_obsact.eps'],'ContentType','vector')

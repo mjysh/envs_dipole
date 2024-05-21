@@ -24,7 +24,8 @@ lam = 4
 Gamma = 3
 bgflow = -1.0                             # background horizontal flow velocity
 cut = 100
-period = lam/0.6096427823203662
+import numpy as np
+period = lam/(np.abs(bgflow)- Gamma/2/lam*np.tanh(2*np.pi*A/lam))
 ##===============================================================================================##
 #  for CFD
 # permitted range of area

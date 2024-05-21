@@ -15,7 +15,9 @@ from gym import spaces
 from gym.utils import seeding
 # from os import path
 from scipy import integrate
-import CFDfunctions as cf
+import sys
+sys.path.append('/home/yusheng/CFDadapt/haotian_pytools')
+from CFDfunctions_multiprocessing import CFDfunctions
 # import time as timer
 # from colorama import Fore, Back, Style
 import importlib
@@ -44,6 +46,7 @@ class DipoleSingleEnv(gym.Env):
         obs_dict = {
             'MDP': (self._get_obs_mdp, 6),
             'geoOneSensor': (self._get_obs_geo, 5),
+            'geoOneSensorWithoutTheta' :(self._get_obs_geo_without_th, 4),
             'geoFlowBlind': (self._get_obs_geoflowblind, 3),
             'egoOneSensor': (self._get_obs_ego1, 4),
             'egoOneSensorVor': (self._get_obs_ego1vor, 5),
@@ -64,8 +67,7 @@ class DipoleSingleEnv(gym.Env):
             'egoAllGradNoVision': (self._get_obs_egoallgradnovision, 5),
             'egoFourGradOnlyNoVision': (self._get_obs_ego4gradonlynovision, 4),
             'egoFourGradMagNoVision': (self._get_obs_ego4gradmagnovision, 5),
-            'egoDirLRGrad': (self._get_obs_egodir2lrgrad, 5),
-            'geoOneSensorWithoutTheta' :(self._get_obs_geo_without_th, 4),
+            'egoDirLRGrad': (self._get_obs_egodir2lrgrad, 5)
             # 'egoLRGradTrick': (self._get_obs_ego2lrgradtrick, 7),
             # 'geoPeriodic': (self._get_obs_geo_all, 6),
             # 'geoLRGradOnly': (self._get_obs_geolrgradonly, 5),
@@ -103,13 +105,22 @@ class DipoleSingleEnv(gym.Env):
             self.permittedR = param.cfdDomainR
             self.permittedU = param.cfdDomainU
             self.permittedD = param.cfdDomainD
-            time_span = param.time_span
+            self.time_span = param.time_span
             level_limit = param.level_limit
-            source_path = self.cfdpath + "np/"
+            source_path = self.cfdpath
             print('begin reading CFD data')
-            self.cfd_framerate,self.time_span,\
-                self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX\
-                = cf.adapt_load_data(time_span,source_path,level_limit)
+            # self.cfd_framerate,self.time_span,\
+            #     self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX\
+            #     = cf.adapt_load_data(time_span,source_path,level_limit)
+            
+            self.CFD_data=CFDfunctions(init_time=275,time_span=self.time_span,
+                                  source_path=source_path,read_interval=1 ,
+                                  level_limit=level_limit,load_velocity=True,
+                                  load_pressure=False,load_vorticity=True,
+                                  multiprocess=12)
+            
+            # u,v,w=CFD_data.adapt_time_interp(time=96.5,posX =-8,posY =0,interp_velocity=True,interp_vorticity=True,interp_pressure=False,interp_concentration=False)
+
             # print('LOADING')
             # print(time_span, source_path, level_limit)
             print('finished reading CFD data')
@@ -204,8 +215,10 @@ class DipoleSingleEnv(gym.Env):
         y = pos[1]
         
         """fixed or adaptive mesh"""
-        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,\
-                                            self.cfd_framerate,time = t % self.time_span,posX = x,posY = y)
+        uVK,vVK,oVK =  self.CFD_data.adapt_time_interp(
+                                            time=t % self.time_span, posX =x, posY =y,
+                                            interp_velocity=True,interp_vorticity=True,
+                                            interp_pressure=False,interp_concentration=False)
 
         oVK = 0
         return uVK,vVK,oVK
@@ -214,8 +227,10 @@ class DipoleSingleEnv(gym.Env):
         y = -pos[1]
         
         """fixed or adaptive mesh"""
-        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,\
-                                            self.cfd_framerate,time = t % self.time_span,posX = x,posY = y)
+        uVK,vVK,oVK =  self.CFD_data.adapt_time_interp(
+                                            time=t % self.time_span, posX =x, posY =y,
+                                            interp_velocity=True,interp_vorticity=True,
+                                            interp_pressure=False,interp_concentration=False)
 
         uVK = -uVK
         vVK = -vVK
@@ -225,8 +240,10 @@ class DipoleSingleEnv(gym.Env):
         x = pos[0]
         y = pos[1]
         """fixed or adaptive mesh"""
-        uVK,vVK,oVK =  cf.adapt_time_interp(self.UUU,self.VVV,self.OOO,self.XMIN,self.XMAX,self.YMIN,self.YMAX,\
-                                            self.cfd_framerate,time = t % self.time_span,posX = x,posY = y)
+        uVK,vVK,oVK =  self.CFD_data.adapt_time_interp(
+                                            time=t % self.time_span, posX =x, posY =y,
+                                            interp_velocity=True,interp_vorticity=True,
+                                            interp_pressure=False,interp_concentration=False)
         return uVK,vVK,oVK
     """reduced order"""
     def __flowVK_reduced(self, pos, t):
@@ -393,7 +410,7 @@ class DipoleSingleEnv(gym.Env):
         if init_time is not None:
             self.time = init_time
         else:
-            self.time = np.random.rand()*self.time_span
+            self.time = np.random.rand()*self.CFD_datatime_span
         """"""
         self.vel = np.zeros_like(self.pos)
         self.trail = []
@@ -1251,7 +1268,7 @@ class DipoleSingleEnv(gym.Env):
                 vortexDown.set_color(0,0,1)
         else:
             """Load CFD images"""
-            cfdimage = bgimage(cf.read_image(self.time % self.time_span, rootpath = self.cfdpath, dump_interval = 10, frame_rate = self.cfd_framerate),32,16)
+            cfdimage = bgimage(self.CFD_data.read_image(self.time % self.time_span, rootpath = self.cfdpath, dump_interval = 10, frame_rate = self.CFD_data.frame_rate),32,16)
             # cfdimage.flip = True     # to flip the image horizontally
             self.viewer.add_onetime(cfdimage)
 

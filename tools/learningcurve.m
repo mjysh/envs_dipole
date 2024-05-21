@@ -92,7 +92,7 @@ plot([t_q(convergence_index) t_q(convergence_index)],[0,rewards(convergence_inde
 
 %%
 load('learning_data.mat')
-for l = 1:length(policies)
+for l = 6:length(policies)
     figure;
     l
     ax1 = subplot('Position',[0.12,0.46,0.48,0.48]);hold on;

@@ -4,7 +4,7 @@ bw = 0.2             # width
 ##===============================================================================================##
 """ observations/actions/reward """
 flowMode = 'CFD_flipped'                          # choice of flow environment, 'CFD','CFDwRot','reduced'
-obsMode = 'labframeOneSensor'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorFB'
+obsMode = 'geoOneSensor'             # choice of observations, 'labframeOneSensor','egoOneSensor','egoOneSensorPlusOrt','egoTwoSensorLR','egoTwoSensorFB'
 ##===============================================================================================##
 dt = 0.1
 mu = 0.8                                  # swimming speed
